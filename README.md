@@ -1,2 +1,10 @@
 # powell-mosquito-phenology
 A repository for USGS Powell Center code associated with mosquito phenology forecasting
+
+## Background
+
+Climate change is expected to have significant effects on the phenology of vectors of arthropod-borne diseases, particularly mosquitoes. However, forecasting the direction and magnitude of future phenological shifts requires a more detailed understanding of the climate drivers of mosquito phenology. Addressing this knowledge gap is particularly salient for mosquitoes, as they have the potential to affect human health through transmission of zoonotic disease. While models based on climate and mosquito life history have been created at local or regional scales, national-scale predictions of the timing of mosquito activity are not readily available for the U.S. Our workshop proposes to synthesize primary data on mosquito seasonality and its relationship to local climate drivers. To do so, we will leverage (1) newly available data from the National Ecological Observatory Network (NEON), which conducts biweekly to monthly mosquito trapping over 47 sites in the continental US, and (2) other sources of data such as from state and county mosquito surveillance activities. Our models will target select species that are representative of the major mosquito life history strategies and disease vectors within North America.  The primary activities of this working group will be to (1) assemble various mosquito datasets from across the United States into a single national-scale data resource; (2) develop appropriate mosquito phenometrics (e.g. estimates of emergence timing, peak timing, duration) based on periodic count data; (3) develop predictive models of seasonality of mosquito species representative of specific life-history strategies  and (4) implement these models to generate real-time and short-term forecasts of mosquito activity as well as predictions of future changes in seasonal patterns of mosquito activity.
+
+## References
+
+USGS Powell Center Working Group [link](https://www.usgs.gov/centers/powell-ctr/science/forecasting-mosquito-phenology-a-shifting-climate-synthesizing)
