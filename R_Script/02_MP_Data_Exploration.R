@@ -65,6 +65,8 @@ grant.df %>%  filter(nTotal >0 ) %>%
   facet_wrap(~SciName, scales="free") 
 
 
-grant.df %>% filter(Domain == "D06") %>% 
-  ggplot(aes(x = DOY, y=Count/TrapHours, color=SciName)) +geom_point(alpha=.5)+
-  facet_wrap(~Year, scales="free") 
+grant.df %>% filter(Domain == "D03" & SciName == "Aedes vexans" & Plot == "DSNY_080") %>% 
+  ggplot(aes(x = DOY, y=Count/TrapHours, color=Year)) +geom_point(alpha=.5)+
+  facet_wrap(~Plot, scales="free") 
+
+View(grant.df %>% filter(Domain == "D03" & SciName == "Aedes vexans" & Plot == "DSNY_080"))
