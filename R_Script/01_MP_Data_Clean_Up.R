@@ -303,13 +303,16 @@ spp.df %>%  filter( Year != "2020" & Year != "") %>%
   facet_wrap(~Domain) +theme_classic()
 
 
+full.df <- 
+
 ##### Lets add the zeros for taxa that were detected at least once in a 
 ##### plot by year 
 ##### ***********  Important note, for now i do not care about distinguishig
-##### between mosquito sex
+  
 
-t <- 0 
-
+  
+  
+t <- 0
 for( y in 1:length( unique(full.df$Year))){
   focYear <- unique(full.df$Year)[y] 
   select.df <- filter(full.df, Year== focYear)
@@ -337,21 +340,29 @@ simpleCount.df <- full.df %>%
   group_by(Plot, DOY,SciName, Year) %>% 
   summarise(Count=sum(Count,na.rm=T))
 
-Zero.df <- left_join(long.df, simpleCount.df, 
+Zero.df <- right_join(simpleCount.df, long.df, 
                      by =c("Plot", "DOY", "SciName", "Year"))
 
 Zero.df$Count[is.na(Zero.df$Count)] <- 0
 
-join.df <- select(full.df, -c("SciName", "Count", "Sex"))
 
-complete.df <-left_join(Zero.df, join.df, by=c("Plot","DOY","Year"))
+join.df <- full.df %>% select(c("Domain", "Site", "Plot", "plotType", "VegClass",
+                                "Lat","Long", "Elev", "TrapHours", "NorD", "Year", "Date",
+                                "DOY", "SciName") )
 
+
+
+complete.df <-left_join(Zero.df, join.df, by=c("Plot","DOY",
+                                                "Year","SciName"))
+
+
+complete.df <- complete.df[!is.na(complete.df$SciName),]
 
 ## if this worked there should be no trend across time 
 
 
 spp.df <- complete.df %>% 
-  group_by(Domain, Site, Plot,DOY, Year) %>% 
+  group_by(Plot,DOY, Year) %>% 
   summarize(
     nSpecies = length(unique(SciName))
   )
@@ -360,7 +371,8 @@ spp.df <- complete.df %>%
 
 spp.df %>%  filter( Year != "2020" & Year != "") %>% 
   ggplot(aes(x=DOY, y= nSpecies, color=Year)) + geom_point(alpha=.75)+
-  facet_wrap(~Domain) +theme_classic()
+  facet_wrap(~Year,scales='free_y') +theme_classic()
+
 
 # Should be good to start to explore
 
