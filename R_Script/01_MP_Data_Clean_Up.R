@@ -119,9 +119,9 @@ trap.df %>% group_by(SampleTiming) %>%
 
 ### looking at the distribution of sampling events
 
-trap.df %>% filter(Year !="2020" & Year != "2014") %>% 
+trap.df %>% filter(Year !="2020" ) %>% 
   ggplot(aes(x=DOY, fill=Year)) + geom_density(alpha=.5) +
-  facet_wrap(~Domain, scales="free_y")
+  facet_wrap(~Domain, scales="free_y") + theme_classic()
 
 year.df <- trap.df %>% group_by(Year, Domain) %>% 
   summarise(start = min(DOY, na.rm = T),
@@ -277,6 +277,12 @@ dim(full.df) # 131676 x 27
 anti.df <- anti_join(trap.df, count.df,by=c("Plot", "SetDate"))
 dim(anti.df) # 26065 X 21
 
+
+anti.df %>% 
+  ggplot(aes(x=DOY, fill=Year)) + geom_density(alpha=.5)+
+  facet_wrap(~Domain, scales="free_y")
+
+
 str(full.df)
 
 
@@ -303,14 +309,13 @@ spp.df %>%  filter( Year != "2020" & Year != "") %>%
   facet_wrap(~Domain) +theme_classic()
 
 
-full.df <- 
-
 ##### Lets add the zeros for taxa that were detected at least once in a 
 ##### plot by year 
 ##### ***********  Important note, for now i do not care about distinguishig
   
-
-  
+## Creating a unique sample id for all sampling vents
+full.df$SampID <- paste( full.df$Plot,"-", full.df$Year, "-",full.df$DOY, "-",full.df$NorD,
+             "-", full.df$TrapHours)
   
 t <- 0
 for( y in 1:length( unique(full.df$Year))){
@@ -320,9 +325,9 @@ for( y in 1:length( unique(full.df$Year))){
     focPlot <- unique(select.df$Plot)[s] 
     iso.df <- filter( select.df, Plot == focPlot)
     Species <- c(unique(iso.df$SciName))
-    Dates <- c(unique(iso.df$DOY))
-    new.df <- expand.grid(Species, Dates)
-    colnames(new.df) <- c("SciName","DOY")
+    Event <- c(unique(iso.df$SampID))
+    new.df <- expand.grid(Species, Event)
+    colnames(new.df) <- c("SciName","SampID")
     new.df$Plot <- focPlot
     new.df$Year <- focYear
     if( t == 0){
@@ -330,33 +335,44 @@ for( y in 1:length( unique(full.df$Year))){
       t <- 1
     }else{
       long.df <- rbind.data.frame(long.df, new.df)
+    
     }
   }
 }
 
+
 ## Ok lets combind the count data, need to simplify it to Plot SciName and DOY
 
 simpleCount.df <- full.df %>% 
-  group_by(Plot, DOY,SciName, Year) %>% 
+  group_by(SciName,SampID) %>% 
   summarise(Count=sum(Count,na.rm=T))
 
-Zero.df <- right_join(simpleCount.df, long.df, 
-                     by =c("Plot", "DOY", "SciName", "Year"))
 
-Zero.df$Count[is.na(Zero.df$Count)] <- 0
+Zero.df <- right_join( simpleCount.df, long.df, 
+                     by =c("SciName","SampID" ))
 
 
 join.df <- full.df %>% select(c("Domain", "Site", "Plot", "plotType", "VegClass",
-                                "Lat","Long", "Elev", "TrapHours", "NorD", "Year", "Date",
-                                "DOY", "SciName") )
+                                "Lat","Long", "Elev" ,"NorD","TrapHours", 
+                                "SampID", "Date", "DOY") )
 
 
-
-complete.df <-left_join(Zero.df, join.df, by=c("Plot","DOY",
-                                                "Year","SciName"))
+complete.df <- left_join(Zero.df, join.df, by=c("Plot" ,"SampID"))
 
 
+# all NAs in count data should be 0
+complete.df$Count[is.na(complete.df$Count)] <- 0
+
+## only interest in taxa we have down to species
 complete.df <- complete.df[!is.na(complete.df$SciName),]
+complete.df <- complete.df %>% filter(SciName != "")
+
+# deleteing duplicate rows
+complete.df <- unique(complete.df)
+
+#
+
+
 
 ## if this worked there should be no trend across time 
 
@@ -377,3 +393,4 @@ spp.df %>%  filter( Year != "2020" & Year != "") %>%
 # Should be good to start to explore
 
 save(complete.df, file = "combinded.Rda")
+
