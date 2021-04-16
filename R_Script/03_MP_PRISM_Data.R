@@ -4,186 +4,159 @@
 # 04/14/2021
 # title: 03_MP_PRISM_Data
 
-# The goal of the following script is to download daily weather data from prism
-# to eventually link to the mosquito trapping data
+# The goal of the following script is to download 30 year monthly average climate
+# data and daily weather data from prism to eventually link to the
+# mosquito trapping data
 
-# load/ install required libraries for data acquisition and clean up
+# load/ install required libraries for prism data acquisition and clean up
 
-install.packages("devtools")
-library(devtools)
-install_github("ropensci/prism")
-library(prism)
-library( dplyr)
+library( prism )
+library( dplyr )
 library( tidyr )
 library( ggplot2 )
 
-## Set download folder for 30 year normal
-prism_set_dl_dir("C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Monthly_Normals")
+# input combined data set created in "01_MP_Data_Clean_Up.R" to
+# extract lat and long from all the plots
 
-# downloading 30 year monthly normals
-
-# Temperature #
-
-# mean value 
-get_prism_normals(type ='tmean', resolution = '4km', mon=1:12, keepZip = F)
-
-# max value 
-get_prism_normals(type ='tmax', resolution = '4km', mon=1:12, keepZip = F)
-
-# min value
-get_prism_normals(type ='tmin', resolution = '4km', mon=1:12, keepZip = F)
-
-# Precipitation  #
-
-get_prism_normals(type ='ppt', resolution = '4km', mon=1:12, keepZip = F)
-
-# Set download folder for daily data
-
-prism_set_dl_dir("C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Dailys")
-
-## temperature ##
-
-## mean temp
-get_prism_dailys(
-  type = "tmean", 
-  minDate = "2013-10-01", 
-  maxDate = "2019-12-31", 
-  keepZip = FALSE
-)
-
-## max temp
-get_prism_dailys(
-  type = "tmax", 
-  minDate = "2013-10-01", 
-  maxDate = "2019-12-31", 
-  keepZip = FALSE
-)
-
-## min temp
-get_prism_dailys(
-  type = "tmin", 
-  minDate = "2013-10-01", 
-  maxDate = "2019-12-31", 
-  keepZip = FALSE
-)
-
-## Precipitation
-get_prism_dailys(
-  type = "ppt", 
-  minDate = "2013-10-01", 
-  maxDate = "2019-12-31", 
-  keepZip = FALSE
-)
-
-##### Woot downloaded all the daily and normal data, now lets subset it down
-#### to the sites of interest
-# input combined dataset created in "01_MP_Data_Clean_Up.R"
 #Set working directory
 
 setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
 load("./Data/combinded.Rda")
 
-complete.df <- ungroup(complete.df)
-plot.df <- dplyr::select(complete.df, c("Plot", "Lat", "Long")) 
+complete.df <- ungroup(complete.df) # ungrouping so i can extract col. of interest
 
-plot.df <- unique(plot.df)
+plot.df <- dplyr::select(complete.df, c("Plot", "Lat", "Long")) # selecting col.
+
+plot.df <- unique(plot.df) # removing duplicate rows , show be # 494 X 3
+
+## Making it a SP dataframe
 plot.spdf <- SpatialPointsDataFrame( coords= plot.df[,c("Long", "Lat")], 
                                      data = plot.df, 
                                      proj4string = CRS("+proj=longlat  +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs"))
 
-### Monthly ppt
+### 30 year monthly average for total ppt
 
+# Setting a path to store the prism data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Monthly_Normals/PPT")
+
+# Downloading the data 
+#get_prism_normals(type ='ppt', resolution = '4km', mon=1:12, keepZip = F)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
-RS <- pd_stack(prism_archive_ls())
+RS <- pd_stack(prism_archive_ls()) # Stacking the downloaded data
 
+# Setting the project
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+# Extracting plots level data
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# Make it into a data frame
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Month,ppt_month_30y_ave, 4:ncol(MP.Plots))
 
+# Extracting month from name
 Mp.Plots$Month <- gsub("PRISM_ppt_30yr_normal_4kmM2_", "", Mp.Plots$Month) %>%
   gsub("_bil", "", .)
 
+# Select columns of interest to store and merge later
 MonthPPT.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Month",
                                            "ppt_month_30y_ave"))
 
 ### Monthly tmean
 
+# Setting pathway to store prism data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Monthly_Normals/Tmean")
+
+#Downloading data
+#get_prism_normals(type ='tmean', resolution = '4km', mon=1:12, keepZip = F)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+# Stacking prism data
 RS <- pd_stack(prism_archive_ls())
 
+# Setting the projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+## extracting plot level data
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# Convert to dataframe
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Month,Tmean_month_30y_ave, 4:ncol(MP.Plots))
 
+# Extracting month
 Mp.Plots$Month <- gsub("PRISM_tmean_30yr_normal_4kmM2_", "", Mp.Plots$Month) %>%
   gsub("_bil", "", .)
 
+# Select columns of interest to store and merge later
 MonthTmean.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Month",
                                             "Tmean_month_30y_ave"))
 
 
 ### Monthly tmax
-
+# Setting path to store prism data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Monthly_Normals/Tmax")
+
+# downloading prism data
+#get_prism_normals(type ='tmax', resolution = '4km', mon=1:12, keepZip = F)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+# Stacking PRISM data
 RS <- pd_stack(prism_archive_ls())
 
+# Setting the projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+## extracting prism points
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# convert to dataframe
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Month,Tmax_month_30y_ave, 4:ncol(MP.Plots))
 
+# Extract month
 Mp.Plots$Month <- gsub("PRISM_tmax_30yr_normal_4kmM2_", "", Mp.Plots$Month) %>%
   gsub("_bil", "", .)
 
+# Select columns of interest to store and merge later
 MonthTmax.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Month",
                                               "Tmax_month_30y_ave"))
 
-
-
 ### Monthly tmin
 
+# Path to store prism data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Monthly_Normals/Tmin")
+
+# downloading prism data
+#get_prism_normals(type ='tmin', resolution = '4km', mon=1:12, keepZip = F)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+#Stack Prism data
 RS <- pd_stack(prism_archive_ls())
 
+# Setting projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+## Extracting plot level data
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# COnvert to data frame
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Month,Tmin_month_30y_ave, 4:ncol(MP.Plots))
 
+# Extract Month
 Mp.Plots$Month <- gsub("PRISM_tmin_30yr_normal_4kmM2_", "", Mp.Plots$Month) %>%
   gsub("_bil", "", .)
 
+# Select columns of interest to store and merge later
 MonthTmin.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Month",
                                              "Tmin_month_30y_ave"))
 
-## Combining all of the monthly data
+
+## Merging all of the 30 year monthly averages ##
+
 thirty.df <- left_join(MonthPPT.df, MonthTmax.df, by=c("Plot", "Lat", "Long",
                                                        "Month"))
 
@@ -193,36 +166,41 @@ thirty.df <- left_join(thirty.df, MonthTmean.df, by=c("Plot", "Lat", "Long",
 thirty.df <- left_join(thirty.df, MonthTmin.df, by=c("Plot", "Lat", "Long",
                                                       "Month"))
 
-ggplot(thirty.df, aes(x=Lat, y=Tmax_month_30y_ave, color=Month))+
-  geom_point()+ xlim(27,47)
+### PRISM DAILY DATA ###
 
+# These files are going to be big
 
-ggplot(thirty.df, aes(x=Lat, y=ppt_month_30y_ave, color=Month))+
-  geom_point()+ xlim(27,47)
-
-
-
-### Ok lets do daily data
 ### Daily ppt
 
+# Set path for daily ppt
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Dailys/PPT")
+
+# Download daily data
+#get_prism_dailys(
+#  type = "ppt", 
+#  minDate = "2013-10-01", 
+#  maxDate = "2019-12-31", 
+#  keepZip = FALSE
+#)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+# Stack daily data
 RS <- pd_stack(prism_archive_ls())
 
+# Set projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+# Extracting plot level data
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# Convert to data frame
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Date,PTT, 4:ncol(MP.Plots))
 
+# Extracting date
 Mp.Plots$Date <- gsub("PRISM_ptt_stable_4kmD2_", "", Mp.Plots$Date) %>%
   gsub("_bil", "", .)
 
-## getting the dates right
 ## extracting year
 Mp.Plots$dumDate <- as.integer(Mp.Plots$Date)
 
@@ -233,14 +211,15 @@ Mp.Plots <- Mp.Plots %>%
 # Converting to proper date format
 Mp.Plots$Date <- as.Date(as.factor(Mp.Plots$Date), "%Y%m%d")
 
+# extracing Julian data
 Mp.Plots$Julian <- julian(Mp.Plots$Date,
                           origin = as.Date("2013-10-01") )
 
-
+# extracting DOY
 Mp.Plots$DOY <- as.POSIXlt(Mp.Plots$Date,
                            format="%Y-%m-%d")$yday
 
-
+# Select columns for merging later
 DailyPPT.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Date",
                                               "Year","Julian", "DOY",
                                               "PPT"))
@@ -248,25 +227,36 @@ DailyPPT.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Date",
 
 ### Daily Mean
 
+# path to store downloaded data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Dailys/Tmean")
+
+# Dowload daily data
+#get_prism_dailys(
+#  type = "tmean", 
+#  minDate = "2013-10-01", 
+#  maxDate = "2019-12-31", 
+#  keepZip = FALSE
+#)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+# Stack daily data
 RS <- pd_stack(prism_archive_ls())
 
+# Setting projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+## Extracting points of interest
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# Converting to a data frame
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Date,TMEAN, 4:ncol(MP.Plots))
 
+# Extracting date
 Mp.Plots$Date <- gsub("PRISM_tmean_stable_4kmD2_", "", Mp.Plots$Date) %>%
   gsub("_bil", "", .)
 
-## getting the dates right
-## extracting year
+# Extracting year
 Mp.Plots$dumDate <- as.integer(Mp.Plots$Date)
 
 Mp.Plots <- Mp.Plots %>% 
@@ -276,47 +266,50 @@ Mp.Plots <- Mp.Plots %>%
 # Converting to proper date format
 Mp.Plots$Date <- as.Date(as.factor(Mp.Plots$Date), "%Y%m%d")
 
+# Converting to julian date
 Mp.Plots$Julian <- julian(Mp.Plots$Date,
                           origin = as.Date("2013-10-01") )
 
-
+# Converting to DOY
 Mp.Plots$DOY <- as.POSIXlt(Mp.Plots$Date,
                            format="%Y-%m-%d")$yday
 
-
+# Selecting columns to merge later
 DailyTMEAN.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Date",
                                             "Year","Julian", "DOY",
                                              "TMEAN"))
 
 ### Daily Max
 
+# Setting a path to store prism data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Dailys/Tmax")
 
-get_prism_dailys(
-  type = "tmax", 
-  minDate = "2013-10-01", 
-  maxDate = "2019-12-31", 
-  keepZip = FALSE
-)
-
+#get_prism_dailys(
+#  type = "tmax", 
+#  minDate = "2013-10-01", 
+#  maxDate = "2019-12-31", 
+#  keepZip = FALSE
+#)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+# Stack data
 RS <- pd_stack(prism_archive_ls())
 
+# Setting projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+# Extracting plot level data
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# Converting to data frame
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Date,TMAX, 4:ncol(MP.Plots))
 
+# Extracting date
 Mp.Plots$Date <- gsub("PRISM_tmax_stable_4kmD2_", "", Mp.Plots$Date) %>%
   gsub("_bil", "", .)
 
-## getting the dates right
-## extracting year
+# Extracting year from date
 Mp.Plots$dumDate <- as.integer(Mp.Plots$Date)
 
 Mp.Plots <- Mp.Plots %>% 
@@ -326,49 +319,51 @@ Mp.Plots <- Mp.Plots %>%
 # Converting to proper date format
 Mp.Plots$Date <- as.Date(as.factor(Mp.Plots$Date), "%Y%m%d")
 
+# Extracting Julian date
 Mp.Plots$Julian <- julian(Mp.Plots$Date,
                           origin = as.Date("2013-10-01") )
 
-
+# Extracting DOY
 Mp.Plots$DOY <- as.POSIXlt(Mp.Plots$Date,
                            format="%Y-%m-%d")$yday
 
-
+# Selecting columns to merge later
 DailyTMAX.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Date",
                                               "Year","Julian", "DOY",
                                               "TMAX"))
 
-
-
 ### Daily Min
 
+# Setting path to store prism data
 options(prism.path ="C:/Users/tmcdevitt-galles/powell-mosquito-phenology/Data/PRISM/Dailys/Tmin")
 
-get_prism_dailys(
-  type = "tmin", 
-  minDate = "2013-10-01", 
-  maxDate = "2019-12-31", 
-  keepZip = FALSE
-)
-
+# Downloading data
+#get_prism_dailys(
+#  type = "tmin", 
+#  minDate = "2013-10-01", 
+#  maxDate = "2019-12-31", 
+#  keepZip = FALSE
+#)
 
 prism_archive_ls() ## make sure i am looking at 30 year normal ppt
 
+# Stacking data
 RS <- pd_stack(prism_archive_ls())
 
+# Setting Projection
 proj4string(RS) <- CRS( "+proj=longlat +towgs84=0,0,0,0,0,0,0 +datum=NAD83 +units=m +no_defs")
 
-## lets extract the points of interest
-
+# Extracting plot level data
 MP.Plots <- raster::extract(RS, plot.spdf,method = "bilinear", sp=T)
 
+# Convert to data frame
 Mp.Plots <- data.frame(MP.Plots) %>% gather(Date,TMIN, 4:ncol(MP.Plots))
 
+# Extracting date
 Mp.Plots$Date <- gsub("PRISM_tmin_stable_4kmD2_", "", Mp.Plots$Date) %>%
   gsub("_bil", "", .)
 
-## getting the dates right
-## extracting year
+# extracting year from date
 Mp.Plots$dumDate <- as.integer(Mp.Plots$Date)
 
 Mp.Plots <- Mp.Plots %>% 
@@ -378,14 +373,15 @@ Mp.Plots <- Mp.Plots %>%
 # Converting to proper date format
 Mp.Plots$Date <- as.Date(as.factor(Mp.Plots$Date), "%Y%m%d")
 
+# COnverting t Julian date
 Mp.Plots$Julian <- julian(Mp.Plots$Date,
                           origin = as.Date("2013-10-01") )
 
-
+# extracting DOY
 Mp.Plots$DOY <- as.POSIXlt(Mp.Plots$Date,
                            format="%Y-%m-%d")$yday
 
-
+# Selecting columns for merging
 DailyTMIN.df <- Mp.Plots %>% dplyr::select(c("Plot", "Lat", "Long", "Date",
                                              "Year","Julian", "DOY",
                                              "TMIN"))
@@ -403,6 +399,7 @@ daily.df <- left_join(daily.df, DailyTMEAN.df, by=c("Plot", "Lat", "Long",
                                                       "Date","Year", "Julian",
                                                       "DOY") )
 
+## Save all the data as Rdata so we dont have to do this costly process again
 
 ## SAving the 30 year normal
 save(thirty.df, file = "MonthlyNormals.Rda")
