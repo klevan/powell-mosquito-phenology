@@ -1,21 +1,21 @@
-####### Powell Center: Phenological patterns of mosquitos #######
+####### Powell Center: Phenological patterns of mosquitoes #######
 
 # Travis McDevitt-Galles
 # 03/31/2021
 # title: 01_MP_Data_Clean_U8p
 
 # The goal of the following script is to import and clean the NEON mosquito data
-# as well as create some summary stats to better undetstand the data
+# as well as create some summary stats to better understand the data
 
 # load required libraries for data clean up
 
-library( dplyr)
+library( dplyr )
 library( tidyr )
 library( ggplot2 )
 
 ## Set working directory
 
-setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
 # input raw data
 
@@ -25,27 +25,36 @@ trap.df <- read.csv( "./Data/Mos_Data/Mos_Trap.csv" )
 # Mosquito count data
 count.df <- read.csv( "./Data/Mos_Data/Mos_Count.csv" )
 
-#### Inital data assessment
+# Mosquito sorting data
 
-dim( trap.df ) # 55930 x 30
+sort.df <- read.csv( "./Data/Mos_Data/Mos_Sort.csv" )
+
+#### Initial data assessment
+
+dim( trap.df ) # 54691 X 32
 
 str(trap.df)
 
-dim( count.df ) # 105420 x 41
+dim( count.df ) # 105374 X 43
 
 str( count.df )
 
+dim( sort.df ) # 29784 X 21
+
+str( sort.df )
 
 # trap.df = trapping information including domain, site ,plot, plot information,
 # lat and long, elevation, trap date, collection date, total time and
 # additional information regarding the quality of the traps , fan working ect
+#
+# sort.df = information regarding the sorting of the mosquitoes, important for
+# scaling count data up for when the count was only on a proportion of the coll.
 # 
 # count.df  = individual count data from trapping nets, includes counts for all
 # taxa identified in traps, seems like most taxa goes to species and has other
 # taxonomic leves ( IE Gensus, Tribe, Family, ect)
 
-## Simplifying the data frames to reduce unwanted columns
-
+## Simplif
 trap.df <- dplyr::select(trap.df, c("domainID", "siteID","plotID",
                                     "plotType", "nlcdClass","decimalLatitude",
                                     "decimalLongitude","elevation", "setDate",
@@ -59,6 +68,19 @@ colnames(trap.df) <- c("Domain", "Site","Plot",
                        "CollectDate", "TrapHours", "NorD",
                        "SampleID", "SampleTiming", "FanStatus","IceStatus",
                        "SampleCondition")
+
+
+
+sort.df <- dplyr::select(sort.df, c("plotID",
+                                     "setDate", "totalWeight",
+                                    "subsampleWeight"))
+
+colnames(sort.df) <- c("Plot", "SetDate", "TotalWeight", "SubsetWeight")
+
+
+trap.df <- left_join(trap.df, sort.df, by=c("Plot", "SetDate"))
+
+
 
 ## adding date, year, julian and DOY metrics
 
@@ -95,7 +117,7 @@ trap.df %>% group_by(SampleCondition) %>%
   summarize( nObs = n(),
              per = n()/nrow(trap.df))
 
-## 96% of all events had no compromise in the sample
+## 98% of all events had no compromise in the sample
 
 ## Sampling events with fan off
 
@@ -341,8 +363,6 @@ for( y in 1:length( unique(full.df$Year))){
 }
 
 
-## Ok lets combind the count data, need to simplify it to Plot SciName and DOY
-
 simpleCount.df <- full.df %>% 
   group_by(SciName,SampID) %>% 
   summarise(Count=sum(Count,na.rm=T))
@@ -352,9 +372,10 @@ Zero.df <- right_join( simpleCount.df, long.df,
                      by =c("SciName","SampID" ))
 
 
-join.df <- full.df %>% select(c("Domain", "Site", "Plot", "plotType", "VegClass",
+join.df <- full.df %>% dplyr::select(c("Domain", "Site", "Plot", "plotType", "VegClass",
                                 "Lat","Long", "Elev" ,"NorD","TrapHours", 
-                                "SampID", "Date", "DOY") )
+                                "SampID", "Date", "DOY", "SampleCondition",
+                                "TotalWeight", "SubsetWeight") )
 
 
 complete.df <- left_join(Zero.df, join.df, by=c("Plot" ,"SampID"))
@@ -389,6 +410,8 @@ spp.df %>%  filter( Year != "2020" & Year != "") %>%
   ggplot(aes(x=DOY, y= nSpecies, color=Year)) + geom_point(alpha=.75)+
   facet_wrap(~Year,scales='free_y') +theme_classic()
 
+
+## Ok lets combind the count data, need to simplify it to Plot SciName and DOY
 
 # Should be good to start to explore
 

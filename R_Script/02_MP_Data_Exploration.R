@@ -1,12 +1,12 @@
-####### Powell Center: Phenological patterns of mosquitos #######
+####### Powell Center: Phenological patterns of mosquitoes #######
 
 # Travis McDevitt-Galles
 # 04/02/2021
 # title: 02_MP_Data_Exploration
 
-# The goal of the following script is to plot some similare trends 
+# The goal of the following script is to plot some similar trends 
 
-# load required libraries for plotting and manipulationss
+# load required libraries for plotting and manipulations
 
 library( dplyr)
 library( tidyr )
@@ -14,15 +14,16 @@ library( ggplot2 )
 
 ## Set working directory
 
-setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
 
-# input combinded dataset created in "01_MP_Data_Clean_Up.R"
+setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
+
+# input combined dataset created in "01_MP_Data_Clean_Up.R"
 
 load("./Data/combinded.Rda")
 
-###  Data strucutre ##
+###  Data structure ##
 
-dim(complete.df) # 619188 X 16
+dim(complete.df) # 620282 X 19
 
 names(complete.df)
 
