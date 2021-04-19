@@ -105,12 +105,49 @@ for( p in 1:length(unique(daily.df$Plot))){
   }
 }
 
-save(daily.df, file= "DailyPrismMod.Rda")
+# save(daily.df, file= "DailyPrismMod.Rda")
+
 
 daily.df %>% filter(Plot == "ABBY_037" & Year > 2013) %>%
-    ggplot(aes(x = DOY, y=Rain14, 
-              color= as.factor(Year) ))+geom_point()+
+  ggplot(aes(x = DOY, y=Rain14, 
+             color= as.factor(Year) ))+geom_point()+
   facet_wrap(~Year)
+
+## should have done this earlier but lets remove NAs in the PRISM data 
+## this should remove NEON plots that are outside the contiguous USA
+
+contigus.df <- daily.df[!is.na(daily.df$TMAX),]
+
 ## Adding photoperiod
 library(meteor)
-at1 <- photoperiod(daily.df$DOY, daily.df$Lat)
+
+contigus.df$Photoperiod <- photoperiod(contigus.df$DOY, contigus.df$Lat)
+
+## Adding growing degree days
+## simply the mean daily temp - base temp, base temp == 10 C
+
+contigus.df$GDD <- contigus.df$TMEAN - 10
+
+# if GDD < 0 then setting GDD to 0
+contigus.df$GDD[contigus.df$GDD<0] <- 0
+
+# Setting temperature max at 33 degrees , if mean was above 33c GDD == 0
+contigus.df$GDD[contigus.df$TMEAN>33] <- 0
+
+
+# Adding cumulative GDD for each plot by year combo
+
+contigus.df <- contigus.df %>% group_by(Plot, Year) %>% arrange(Julian) %>% 
+  mutate( CumGDD = cumsum( GDD )) %>% ungroup()
+
+contigus.df %>% filter(  Plot == "ABBY_037" |
+                 Plot == "DSNY_075" |
+                 Plot == "MOAB_036" |
+                 Plot == "CPER_086" |
+                 Plot == "WOOD_034" |
+                 Plot == "SOAP_041" ) %>% 
+  ggplot(aes(x=DOY, y= CumGDD, color=as.factor(Year))) + 
+  geom_point(size=2, alpha=.5)+
+  facet_wrap(~Plot, scales="free_y")
+
+#save(contigus.df, file= "DailyPrismMod.Rda")
