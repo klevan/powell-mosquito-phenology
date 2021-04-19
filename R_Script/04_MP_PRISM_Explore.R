@@ -87,6 +87,7 @@ for( p in 1:length(unique(daily.df$Plot))){
   FocPlot <- unique(daily.df$Plot)[p]
   plot.df <- filter(daily.df, Plot == FocPlot)
   plot.df <- arrange(plot.df, Julian)
+  # 7 day moving average for temp
   for( t in 7:max(plot.df$Julian)){
     daily.df$Tmax7[daily.df$Plot==FocPlot & daily.df$Julian == t ] <- 
       mean(plot.df$TMAX[(t-6):t], na.rm=T)
@@ -94,6 +95,7 @@ for( p in 1:length(unique(daily.df$Plot))){
       mean(plot.df$TMIN[(t-6):t], na.rm=T)
     daily.df$Tmean7[daily.df$Plot==FocPlot & daily.df$Julian == t ] <- 
       mean(plot.df$TMEAN[(t-6):t],na.rm=T)
+    # 14 day moving average for precip
     if( t >= 14){
       daily.df$PPT14[daily.df$Plot==FocPlot & daily.df$Julian == t ] <- 
         sum(plot.df$PPT[(t-13):t], na.rm=T)
@@ -102,3 +104,13 @@ for( p in 1:length(unique(daily.df$Plot))){
     }
   }
 }
+
+save(daily.df, file= "DailyPrismMod.Rda")
+
+daily.df %>% filter(Plot == "ABBY_037" & Year > 2013) %>%
+    ggplot(aes(x = DOY, y=Rain14, 
+              color= as.factor(Year) ))+geom_point()+
+  facet_wrap(~Year)
+## Adding photoperiod
+library(meteor)
+at1 <- photoperiod(daily.df$DOY, daily.df$Lat)
