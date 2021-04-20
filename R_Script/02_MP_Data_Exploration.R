@@ -231,3 +231,200 @@ grant.df %>% filter(Site == "DELA"  & Year != "2020") %>%
 
 View(grant.df %>% filter(Domain == "D06"& SciName == "Aedes vexans" & 
                       Year == "2017" & Plot =="UKFS_037") )
+
+
+
+###### Domain 9 
+
+
+grant.df %>% filter(Domain == "D09" & SciName == "Aedes vexans" ) %>% 
+  group_by(Domain, Site, Year, Plot) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = Year, y=( ( (Count/TrapHours)) ), fill=Site)) +geom_boxplot(alpha=.5)+
+  facet_wrap(~Domain, scales="free_y", ncol=1) +  theme_classic()+
+  xlab("Year") +ylab("Mosquito densities")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "top",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+
+grant.df %>% filter(Site == "DCFS" & SciName == "Aedes vexans"& Year != "2020" ) %>% 
+  group_by(DOY, Site, Year, Plot, SciName) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=( (Count/TrapHours)) , color=SciName)) +geom_point(alpha=.5)+
+  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(se = F)+ theme_classic()+
+  xlab("Day of Year") +ylab("Mosquito densities")+
+  scale_color_manual(values = "#C59900")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "none",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+grant.df %>% filter(Site == "DCFS"  & Year != "2020") %>% 
+  group_by(DOY, Site, Year, Plot, SciName) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
+  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(se = F)+ theme_classic()+
+  xlab("Day of Year") +ylab("Mosquito densities")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position = "top",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+
+###### Domain 14 ( Desert )
+
+grant.df %>% filter(Domain == "D14"  ) %>% 
+  group_by(Domain, Site, Year, Plot) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = Year, y=( ( (Count/TrapHours)) ), fill=Site)) +geom_boxplot(alpha=.5)+
+  facet_wrap(~Domain, scales="free_y", nco =1) +  theme_classic()+
+  xlab("Year") +ylab("Mosquito densities")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "top",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+
+grant.df %>% filter(Site == "SRER" ) %>% 
+  group_by(DOY, Site, Year, Plot) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=( (Count/TrapHours)) )) +geom_point(alpha=.5)+
+  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(se = F)+ theme_classic()+
+  xlab("Day of Year") +ylab("Mosquito densities")+
+  scale_color_manual(values = "#C59900")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "none",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+grant.df %>% filter(Site == "DCFS"  & Year != "2020") %>% 
+  group_by(DOY, Site, Year, Plot, SciName) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
+  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(se = F)+ theme_classic()+
+  xlab("Day of Year") +ylab("Mosquito densities")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position = "top",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+
+###### Domain 11 ( Desert )
+
+grant.df %>% filter(Domain == "D11"  ) %>% 
+  group_by(Domain, Site, Year, Plot) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = Year, y=( ( (Count/TrapHours)) ), fill=Site)) +geom_boxplot(alpha=.5)+
+  facet_wrap(~Domain, scales="free_y", nco =1) +  theme_classic()+
+  xlab("Year") +ylab("Mosquito densities")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "top",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+
+grant.df %>% filter(Site == "OAES"& SciName == "Aedes vexans" ) %>% 
+  group_by(DOY, Site, Year, Plot, SciName) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName )) +geom_point(alpha=.5)+
+  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(se = F)+ theme_classic()+
+  xlab("Day of Year") +ylab("Mosquito densities")+
+  scale_color_manual(values = "#C59900")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "none",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
+
+grant.df %>% filter(Site == "OAES") %>% 
+  group_by(DOY, Site, Year, Plot, SciName) %>%
+  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName )) +geom_point(alpha=.5)+
+  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(se = F)+ theme_classic()+
+  xlab("Day of Year") +ylab("Mosquito densities")+
+  #scale_color_manual(values = "#C59900")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.position= "none",
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
