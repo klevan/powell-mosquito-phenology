@@ -77,6 +77,7 @@ library(maps)
 library(viridis)
 MainStates <- map_data("state")
 
+### Spatial variation in precipitation Coef of Variation 
 season.df %>% 
   ggplot() +
   geom_polygon(data = MainStates, aes(x=long,y=lat, group=group),color="black",
@@ -99,8 +100,7 @@ season.df %>%
          strip.text.x = element_text(size=20) )
   
 
-
-
+### Spatial variation in temperature SD
 season.df %>% 
   ggplot() +
   geom_polygon(data = MainStates, aes(x=long,y=lat, group=group),color="black",
@@ -229,9 +229,12 @@ annual.df  %>%
 
 
 ## Variation in temperature across month , most of the variation is during the winter months
-annual.df %>%  
-  ggplot(aes(x=reorder(as.factor(Month),-TempCV),y=TempCV,
-             fill=as.factor(Month))) + geom_boxplot()+ theme_classic()+ 
+annual.df%>% 
+  group_by( Month) %>% 
+  summarise(TempCV = mean(TempCV)) %>% 
+  ggplot(aes(x=(as.factor(Month)),y=TempCV, 
+             fill=as.factor(Month))) + geom_bar(color="black", stat="identity")+
+  theme_classic()+ 
   xlab("Month") + ylab("Across year temp variation") +
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
@@ -247,9 +250,12 @@ annual.df %>%
          strip.text.x = element_text(size=20) )
 
 # this effect is pretty consistent across all domains
-annual.df %>%  
-  ggplot(aes(x=reorder(as.factor(Month),-TempCV),y=TempCV, 
-             fill=as.factor(Month))) + geom_boxplot()+
+annual.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                        Domain == "D08" | Domain == "D09") %>% 
+  group_by(Domain, Month) %>% 
+  summarise(TempCV = mean(TempCV)) %>% 
+  ggplot(aes(x=as.factor(Month),y=TempCV, 
+             fill=as.factor(Month))) + geom_bar(color="black", stat="identity")+
   facet_wrap(~Domain) + theme_classic()+ 
   xlab("Month") + ylab("Across year temp variation") +
   theme( legend.key.size = unit(.5, "cm"),
@@ -268,9 +274,12 @@ annual.df %>%
 
 
 ## Variation in precip across month , pretty even variation across all months
-annual.df %>%  
-  ggplot(aes(x=reorder(as.factor(Month),-PptCV),y=PptCV,
-             fill=as.factor(Month))) + geom_boxplot()+ theme_classic()+ 
+annual.df%>% 
+  group_by( Month) %>% 
+  summarise(PptCV = mean(PptCV)) %>% 
+  ggplot(aes(x=(as.factor(Month)),y=PptCV, 
+             fill=as.factor(Month))) + geom_bar(color="black", stat="identity")+
+  theme_classic()+  
   xlab("Month") + ylab("Across year Precip variation") +
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
@@ -286,10 +295,26 @@ annual.df %>%
          strip.text.x = element_text(size=20) )
 
 # pretty variable across domain
-annual.df %>%  
-  ggplot(aes(x=reorder(as.factor(Month),-PptCV),y=PptCV,
-             fill=as.factor(Month))) + geom_boxplot()+
-  facet_wrap(~Domain) + theme(legend.position = "none")
+annual.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                        Domain == "D08" | Domain == "D09") %>% 
+  group_by(Domain, Month) %>% 
+  summarise(PptCV = mean(PptCV)) %>% 
+  ggplot(aes(x=as.factor(Month),y=PptCV, 
+             fill=as.factor(Month))) + geom_bar(color="black", stat="identity")+
+  facet_wrap(~Domain) +  theme_classic() +
+  xlab("Month") + ylab("Across year Precip variation") +
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 ## Simple model to assess which factors are associated with higher variation
 season.m <- lmer(TempCV ~ scale(Elev) + scale(Lat)+
@@ -329,14 +354,22 @@ compare.df <- left_join(compare.df, complete.df, by="Plot")
 ## Deviations from normal across domains 
 
 #PPT A lot of variation,probably to be expected for a 4 year period
-compare.df %>% 
+compare.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                                       Domain == "D08" | Domain == "D09") %>% 
+  group_by(Domain, Month,Year) %>% 
+  summarise(PPT = mean(PPT),
+            ppt_month_30y_ave= mean(ppt_month_30y_ave)) %>% 
   ggplot(aes(x=ppt_month_30y_ave, y=PPT, color=as.factor(Month)))+
   geom_point(size=2, alpha=.5)+geom_abline(intercept=0, slope=1)+
   facet_wrap(~Domain, scales="free")
 
 # Temp, less variation, probably 
-compare.df %>% 
-  ggplot(aes(x=Tmax_month_30y_ave, y=Tmax, color=as.factor(Month)))+
+compare.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                         Domain == "D08" | Domain == "D09") %>% 
+  group_by(Domain, Month,Year) %>% 
+  summarise(Tmean = mean(Tmean),
+            Tmean_month_30y_ave = mean(Tmean_month_30y_ave)) %>% 
+  ggplot(aes(x=Tmean_month_30y_ave, y=Tmean, color=as.factor(Month)))+
   geom_point(size=2, alpha=.5)+geom_abline(intercept=0, slope=1)+
   facet_wrap(~Domain, scales="free")
 
@@ -346,7 +379,7 @@ compare.df %>%
 compare.df$TmaxDev <- (compare.df$Tmax - compare.df$Tmax_month_30y_ave) 
 compare.df$TminDev <- (compare.df$Tmin - compare.df$Tmin_month_30y_ave)
 compare.df$TmeanDev <- (compare.df$Tmean - compare.df$Tmean_month_30y_ave)
-compare.df$PptDev <- (log10(compare.df$PPT+1) - log10(compare.df$ppt_month_30y_ave+1))
+compare.df$PptDev <- ((compare.df$PPT) - (compare.df$ppt_month_30y_ave))
 
 ## Variation in TMax
 compare.df %>% 
@@ -354,11 +387,58 @@ compare.df %>%
   geom_density( alpha=.5)+
   facet_wrap(~Month, scales="free")+ theme(legend.position = "None")
 
+
+## Variation in TMax
+compare.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                         Domain == "D08" | Domain == "D09") %>% 
+  ggplot(aes(y=TmeanDev,x=as.factor(Month),fill=as.factor(Domain)))+
+  geom_hline(yintercept=0)+
+  geom_jitter(aes(color=TmeanDev),width=.05, alpha=.75)+ 
+  geom_boxplot(alpha=.25, outlier.shape = NA)+
+  facet_wrap(~Domain, scales="free")+  theme_classic() +
+  scale_color_gradientn(colors = rainbow(5), trans='reverse') +
+  xlab("Month") + ylab("Temp (C) deviation from 30y ave") +
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
 ## Variation in PPT
 compare.df %>% 
   ggplot(aes(x=PptDev, fill=as.factor(Domain)))+
   geom_density( alpha=.5)+
   facet_wrap(~Month, scales="free")+ theme(legend.position = "None")
+
+compare.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                         Domain == "D08" | Domain == "D09") %>% 
+  ggplot(aes(y=PptDev,x=as.factor(Month), fill=as.factor(Domain)))+
+  geom_hline(yintercept=0)+
+  geom_jitter(aes(color=PptDev),width=.05, alpha=.75)+ 
+  geom_boxplot(alpha=.25, outlier.shape = NA)+
+  facet_wrap(~Domain, scales="free")+  theme_classic() +
+  scale_color_gradientn(colors = rainbow(5)) +
+  xlab("Month") + ylab("PPT (mm) deviation from 30 y ave") +
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 
 ## across year variation in temperature
@@ -686,6 +766,36 @@ tmean.df$PCA2 <- at1$ind$coord[,2]
 ggplot( tmean.df, aes(x =PCA1, y= PCA2, color=Domain)) + geom_point() +
   stat_ellipse() +facet_wrap(~Year)+
   theme_classic()+ geom_hline(yintercept = 0) + geom_vline(xintercept = 0)
+
+
+### gdd
+
+annual.df <- left_join(contigus.df, complete.df, by="Plot")
+
+annual.df %>%  filter(Domain =="D05" | Domain == "D06" |
+                         Domain == "D08" | Domain == "D09") %>%
+  filter(Year > 2013) %>% ungroup() %>% 
+  group_by(DOY,Domain,Year) %>% 
+  summarise(CumGDD = mean(CumGDD)) %>% ungroup() %>%
+  ggplot(aes(x=DOY, y= CumGDD, color=as.factor(Domain))) + 
+  geom_line(size=2 ,alpha=.75)+ #geom_point(size=2,alpha=.8)+
+  scale_color_manual(values = c( "#9999CC","#CC6666", "#66CC99", "#cc66cc", "#ff9933"),
+                     name="Domain")+
+  facet_wrap(~Year) +theme_classic()+
+  xlab("DOY") + ylab("Cummulative GDD") +
+  theme( legend.key.size = unit(1, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         #legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
 
 
 
