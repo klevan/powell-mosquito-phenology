@@ -32,7 +32,7 @@ str(contigus.df)
 
 str(complete.df)
 
-#################### Combinding data sets #############
+#################### Combining data sets #############
 
 # selecting the needed columns and data to merge with count data
 cont.df <- contigus.df %>% select( -c("Lat", "Long", "Date"))
@@ -45,42 +45,47 @@ dim(full.df) # 620662 X 33
 
 ############ subsetting to the single species, site and year #########
 
-# We are only intersted in Aedes vexans from WOOD site
+# We are only interested in Aedes vexans from WOOD site
 toy.df <- filter(full.df, SciName== "Aedes vexans" & Site == "WOOD")
 
 unique(toy.df$Year)
 
 ## lets first just estimate for one year, 2017 was a good year for me so 
 
-toy.year.df <- filter(toy.df, Year == 2017)
+toy.year.df <-filter(toy.df, Year == 2016)
 
-## summarize to DOY leve
+## summarize to DOY level
 toy.year.df <- toy.year.df %>% #filter(Plot == "WOOD_039") %>% 
-  group_by(DOY, Plot) %>% 
+  group_by(DOY,Plot) %>% 
   summarise(Count = sum(Count),
             TrapHours= sum(TrapHours)) %>% ungroup()
   
 ## Plot data
 toy.year.df %>% 
-ggplot( aes(x = DOY, y=Count/TrapHours, color=Plot))+geom_point()
+ggplot( aes(x = DOY, y=Count))+geom_point()
+
+## Rounding for easy density estimates
+
+toy.year.df$MosDen <- as.integer(round(toy.year.df$Count/toy.year.df$TrapHours,0))
 
 #### building functions for the birth pulse model ####
 
-# Estimate the number of emerging mosquitos across the year
+# Estimate the number of emerging mosquitoes across the year
 
 # Parameters
-# k = scaling factor propotional to the annual per capita birth rate
+# k = scaling factor proportional to the annual per capita birth rate
 # t = the time steps will be the DOY
 # s = birthing synchrony, how wide and tall the birthing peak is
-# phi = the timing of the differnt pulses
+# phi = the timing of the different pulses
 
-bp <-function(k ,s, phi,t){
-  # vector to store my predicted abudance patterns
-  pred_bp <- rep(NA, t)
-  
+bp <-function(k ,s, phi,tmin, tmax){
+  # vector to store my predicted abundance patterns
+  season <- tmax - tmin
+  pred_bp <- rep(NA, (season) )
+ 
   # Looping through the time steps to predict abundance
-  for( i in 1:t){
-    time <- i/t
+  for( i in 1:season){
+    time <- i/season
     pred_bp[i] <- k * sqrt(s/pi) * exp( -s * cos( (pi*time) * (phi) )^2 )
   }
   # returning the vector of predictions
@@ -88,12 +93,11 @@ bp <-function(k ,s, phi,t){
 }
 
 
-at <- bp(k =0.0041,s =2, phi = 2 ,t= 300)
+at <- bp(k =6.24 ,s =8.01, phi =3.85 ,tmin = min(toy.year.df$DOY),
+         tmax= max(toy.year.df$DOY))
 
-
-plot(y=at, x= 1:300)
-
-
+plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
+points(y=at, x=75:319,type="l")
 
 #### Cosine function 
 
@@ -101,13 +105,14 @@ plot(y=at, x= 1:300)
 # phi = number of birthing events
 # k = scaler for max population size
 
-cosinePop <-function(k, phi,t){
-  # vector to store my predicted abudance patterns
-  pred_cosine <- rep(NA, t)
+cosinePop <-function(k, phi,tmin , tmax){
+  # vector to store my predicted abundance patterns
+  season <- tmax -tmin
+  pred_cosine <- rep(NA, season)
   
   # Looping through the time steps to predict abundance
-  for( i in 1:t){
-    time <- i/t
+  for( i in 1:season){
+    time <- i/season
     pred_cosine[i] <- k* cos( (pi*time) * (phi) )^2 
   }
   # returning the vector of predictions
@@ -115,8 +120,90 @@ cosinePop <-function(k, phi,t){
 }
 
 
-at <-  cosinePop(k=100,phi = 2 ,t= 300)
+at <-  cosinePop(k=100,phi =.9 , tmin= 88, tmax=298)
 
 
-plot(y=at, x= 1:300)
+plot(y=at, x= 89:298)
 
+## Writing the likelihood model to use to optimize the parameter estimation
+
+## negative log likelihood for birth pulse model
+
+nll_BP <- function(par, n , tmin, tmax){
+  pred <- bp( k= par[1], s= par[2], phi=par[3], tmin= tmin, tmax=tmax)
+  nll <- sum(- dpois(n, lambda = mean(pred), log=T))
+  return(nll)
+}
+
+nll_Cosine <- function(par, n , tmin, tmax){
+  pred <- cosinePop( k= par[1], s= par[2], phi=par[3], tmin= tmin, tmax=tmax)
+  nll <- sum(- dpois(n, lambda = mean(pred), log=T))
+  return(nll)
+}
+
+
+# Optimizing the GP model
+
+start <- c(5, 2,0)
+
+optim_BP <- optim( start, nll_BP,  n = toy.year.df$MosDen,
+                   tmin = min(toy.year.df$DOY), tmax = max(toy.year.df$DOY))
+optim_BP
+
+
+# Calculating AIC 
+
+nll <- optim_BP$value # likelihood
+k <- 3 # number of parameters estimated
+AIC_BP <- 2*nll+2*k
+
+# Calculating weighted AIC
+wAIC_BP <- AIC_BP + ( ( 2*k * (k=+1) ) / (length(toy.year.df$MosDen)-k-1))
+
+AIC_BP # 1918.695
+wAIC_BP # 1918.715  # no difference due to high sample size 
+
+## Testing fitted parameters
+
+fit <- bp(k =5.58 ,s =1.58, phi = .72 , tmin= 74, tmax=319)
+
+
+plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
+points(y=fit, x=75:319,type="l")
+
+
+
+nll_Cosine <- function(par, n , tmin, tmax){
+  pred <- cosinePop( k= par[1], phi=par[2], tmin= tmin, tmax=tmax)
+  nll <- -sum(dpois(n, lambda = mean(pred), log=T))
+  return(nll)
+}
+
+
+# selecting the starting points 
+start <- c(0.5,1)
+
+optim_cosine <- optim( start, nll_Cosine,  n = toy.year.df$MosDen,
+                   tmin = min(toy.year.df$DOY), tmax = max(toy.year.df$DOY))
+optim_cosine
+
+
+fit <-  cosinePop(k=5.26,phi =1.87 , tmin= 74, tmax=319)
+
+plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
+points(y=fit, x=75:319,type="l")
+
+
+nll <- optim_BP$value # likelihood
+k <-  2# number of parameters estimated
+AIC_cosine <- 2*nll+2*k
+
+# Calculating weighted AIC
+wAIC_cosine <- AIC_cosine + ( ( 2*k * (k+1) ) / (length(toy.year.df$MosDen)-k-1))
+
+AIC_cosine  # 1916.695
+wAIC_cosine #  1916.708 # no difference due to high sample size 
+
+
+### Cosine model has a slightly lower AIC score compared to birth pulse model
+## delta AIC =~ 2 
