@@ -142,3 +142,52 @@ stan_d <- list( n= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
                 y=toy.df$Count, offset = toy.df$TrapHours)
 
 output <- stan( './R_Script/Stan_Models/initModel.stan', data=stan_d)
+
+## print estimated coefficients
+print(output, pars = c("beta", "lp__"))
+
+# lets compare to the simple glm version of the model
+simple.m <- glm( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours)),
+                 family="poisson", data=toy.df)
+summary(simple.m)
+
+# checking the trace plot
+traceplot(output)
+
+# Plotting the coefficient
+plot(output)
+
+pairs(output)
+
+
+## lets plot the line of best fit
+post <- rstan::extract(output)
+
+# getting the orthogonal polynomial terms
+dum.df<- as.data.frame(poly(toy.df$DOY,2)[,1:2])
+
+colnames(dum.df) <- c("sDOY", "sDOY2")
+
+dum.df$DOY <- toy.df$DOY
+
+n_iter <- length(post$lp__)
+
+t <- 1
+for( i in 1:n_iter){
+  pred <- exp( post$beta[i,1] + post$beta[i,2]*dum.df$sDOY+ 
+                 post$beta[i,3]*dum.df$sDOY2)
+  dummy.df <- cbind.data.frame(dum.df$DOY,pred)
+  dummy.df$obs <- as.factor(i)
+  if(t == 1 ){
+    pred.df <- dummy.df
+    t <- t +1
+  }else{
+    pred.df <- rbind.data.frame(pred.df, dummy.df)
+  }
+}
+
+colnames(pred.df) <- c("DOY", "Pred", "Obs")
+
+ggplot(pred.df, aes(x=DOY, y= Pred, group=Obs))+ geom_line(alpha=.2,color="dark blue")+
+  geom_jittwe(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.5)
+  
