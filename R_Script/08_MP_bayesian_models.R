@@ -68,48 +68,54 @@ toy.df %>%
 ## model is working ok
 library(lme4)
 
+# lets start really simply and just focus on one year
+toy.df <- toy.df %>% filter(Year == 2017)
+
 ## First model will be set up to fit a quadratic model that allows variation 
 ## in slope across years and random intercept for plot
 
-full.m <- glmer( Count ~ scale(DOY)*as.factor(Year) + scale(DOY^2)*as.factor(Year) +
+
+full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours))+
                    (1|Plot) + offset((TrapHours)), family="poisson",
                  data=toy.df,
                  control = glmerControl(optimizer = "bobyqa", 
                                         optCtrl = list(maxfun=2e5)))
 summary(full.m)
 
-performance::check_overdispersion(full.m) # Very overdispered, need to model
-# as a negative binomial
+## over dispersion check
+
+performance::check_overdispersion(full.m) # Very over dispersed, need to model
+                                          # as a negative binomial or add an 
+                                          # observation random effect
+
+# Creating the observation level factor
 
 toy.df$Obs <- as.factor(1:nrow(toy.df))
 
-at1 <- toy.df %>% filter(Year == 2016)
-
-
 full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours))+
                    (1|Plot) + (1|Obs),
-                 family="poisson", data=at1,
+                 family="poisson", data=toy.df,
                  control = glmerControl(optimizer = "bobyqa", 
                                         optCtrl = list(maxfun=2e5)))
 summary(full.m)
 
-performance::check_overdispersion(full.m) # Very overdispered, need to model
-# as a negative binomial
+## over dispersion check
 
+performance::check_overdispersion(full.m) # cool adding observation random
+                                          # effect helped 
 ##### Ok lets plot this
 
 inter <- fixef(full.m)[1]
 doy <- fixef(full.m)[2]
 doy2 <- fixef(full.m)[3]
-## getting dumming dataframe
 
-
-dum.df<- as.data.frame(poly(at1$DOY,2)[,1:2])
-
+## getting dummy data frame
+# getting the orthogonal polynomial terms
+dum.df<- as.data.frame(poly(toy.df$DOY,2)[,1:2])
 
 colnames(dum.df) <- c("sDOY", "sDOY2")
 
-dum.df$DOY <- at1$DOY
+dum.df$DOY <- toy.df$DOY
 dum.df$Pred <- NA
 
 for( i in 1:nrow(dum.df)){
@@ -118,8 +124,21 @@ for( i in 1:nrow(dum.df)){
                     dum.df$sDOY2[i]*doy2
 }
 
+# transform the predicted values to counts
 dum.df$Pred.t <- exp(dum.df$Pred)
 
+# plot the results
 ggplot(dum.df,aes(x=DOY, y = Pred.t))+geom_line(size=2)+
-  geom_point(data=at1, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.5)
+  geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.5)
 
+### Cool we now have a nice frequentist estimate of the polynomial patterns of 
+### the data for 2017, now lets see how well we can capture this with a
+## bayesian approach
+
+poly.mat <- matrix( c(rep(1,nrow(toy.df)), poly(toy.df$DOY, 2)[,1], 
+                    poly(toy.df$DOY, 2)[,2] ), ncol=3  )
+
+stan_d <- list( n= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
+                y=toy.df$Count, offset = toy.df$TrapHours)
+
+output <- stan( './R_Script/Stan_Models/initModel.stan', data=stan_d)
