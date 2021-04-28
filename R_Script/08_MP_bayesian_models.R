@@ -72,7 +72,7 @@ library(lme4)
 ## in slope across years and random intercept for plot
 
 full.m <- glmer( Count ~ scale(DOY)*as.factor(Year) + scale(DOY^2)*as.factor(Year) +
-                   (1|Plot) + offset(log(TrapHours)), family="poisson",
+                   (1|Plot) + offset((TrapHours)), family="poisson",
                  data=toy.df,
                  control = glmerControl(optimizer = "bobyqa", 
                                         optCtrl = list(maxfun=2e5)))
@@ -83,11 +83,11 @@ performance::check_overdispersion(full.m) # Very overdispered, need to model
 
 toy.df$Obs <- as.factor(1:nrow(toy.df))
 
-at1 <- toy.df 
+at1 <- toy.df %>% filter(Year == 2016)
 
-at1$DOY2 <- at1$DOY^2
-full.m <- glmer( Count ~ scale(DOY) * scale(I(DOY^2))+
-                   offset(log(TrapHours)) + (1|Plot) + (1|Obs),
+
+full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours))+
+                   (1|Plot) + (1|Obs),
                  family="poisson", data=at1,
                  control = glmerControl(optimizer = "bobyqa", 
                                         optCtrl = list(maxfun=2e5)))
@@ -101,33 +101,25 @@ performance::check_overdispersion(full.m) # Very overdispered, need to model
 inter <- fixef(full.m)[1]
 doy <- fixef(full.m)[2]
 doy2 <- fixef(full.m)[3]
-interact <- fixef(full.m)[4]
 ## getting dumming dataframe
 
-range(toy.df$DOY)
 
-dum.df <- data.frame( DOY = as.integer( 74:319))
+dum.df<- as.data.frame(poly(at1$DOY,2)[,1:2])
 
-dum.df$DOY2 <- dum.df$DOY^2
 
-dum.scale <- scale(toy.df$DOY)
-dum.scale2 <- scale(I(toy.df$DOY^2))
+colnames(dum.df) <- c("sDOY", "sDOY2")
 
-dum.df$sDOY <- dum.df$DOY- attr(dum.scale, "scaled:center")/
-  attr(dum.scale, "scaled:scale")
-
-dum.df$sDOY2 <- dum.df$DOY2 - attr(dum.scale2, "scaled:center")/
-  attr(dum.scale2, "scaled:scale")
-
+dum.df$DOY <- at1$DOY
 dum.df$Pred <- NA
 
 for( i in 1:nrow(dum.df)){
   dum.df$Pred[i] <- inter +
                     dum.df$sDOY[i]*doy +
-                    dum.df$sDOY2[i]*doy2+
-                    dum.df$sDOY[i]*dum.df$sDOY2[i] * interact
+                    dum.df$sDOY2[i]*doy2
 }
 
 dum.df$Pred.t <- exp(dum.df$Pred)
 
-ggplot(dum.df,aes(x=DOY, y = Pred))+geom_line()
+ggplot(dum.df,aes(x=DOY, y = Pred.t))+geom_line(size=2)+
+  geom_point(data=at1, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.5)
+
