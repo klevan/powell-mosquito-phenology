@@ -8,9 +8,17 @@ data {
 
 parameters {
 	vector[p] beta; // vector of betas for the different parameters
+	vector[n] epsilon; // vector of random effects
+	real<lower =0> sigma;
 }
 
 model {
+  // Priors
 	beta ~ normal(0, 5);
-	y ~ poisson_log(X*beta +log(offset));
+	sigma ~ normal(0,3);
+	epsilon ~ normal(0,sigma);
+	
+	//likelihood
+	
+	y ~ poisson_log(X*beta + epsilon + log(offset));
 }
