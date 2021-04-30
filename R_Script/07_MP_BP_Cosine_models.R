@@ -52,7 +52,7 @@ unique(toy.df$Year)
 
 ## lets first just estimate for one year, 2017 was a good year for me so 
 
-toy.year.df <-filter(toy.df, Year == 2016)
+toy.year.df <-filter(toy.df, Year == 2017)
 
 ## summarize to DOY level
 toy.year.df <- toy.year.df %>% #filter(Plot == "WOOD_039") %>% 
@@ -144,7 +144,7 @@ nll_Cosine <- function(par, n , tmin, tmax){
 
 # Optimizing the GP model
 
-start <- c(5, 2,0)
+start <- c(6, 10,1)
 
 optim_BP <- optim( start, nll_BP,  n = toy.year.df$MosDen,
                    tmin = min(toy.year.df$DOY), tmax = max(toy.year.df$DOY))
@@ -165,13 +165,29 @@ wAIC_BP # 1918.715  # no difference due to high sample size
 
 ## Testing fitted parameters
 
-fit <- bp(k =5.58 ,s =1.58, phi = .72 , tmin= 74, tmax=319)
+fit <- bp(k =7.66 ,s =9.08, phi = 1 , tmin= 74, tmax=319)
 
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
 points(y=fit, x=75:319,type="l")
 
+fit.df <- data.frame( fit= as.numeric(fit), DOY = as.integer(75:319))
 
+ggplot( toy.year.df,aes(x=DOY, y=MosDen)) + geom_point(size=2,alpha=.7)+
+  geom_line(data=fit.df,aes(x=DOY,y=fit),size=2,color='blue') + 
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 nll_Cosine <- function(par, n , tmin, tmax){
   pred <- cosinePop( k= par[1], phi=par[2], tmin= tmin, tmax=tmax)
@@ -192,6 +208,24 @@ fit <-  cosinePop(k=5.26,phi =1.87 , tmin= 74, tmax=319)
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
 points(y=fit, x=75:319,type="l")
+
+fit.df <- data.frame( fit= as.numeric(fit), DOY = as.integer(75:319))
+
+ggplot( toy.year.df,aes(x=DOY, y=MosDen)) + geom_point(size=2,alpha=.7)+
+  geom_line(data=fit.df,aes(x=DOY,y=fit),size=2,color='blue') + 
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 
 nll <- optim_BP$value # likelihood

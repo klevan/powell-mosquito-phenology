@@ -319,3 +319,52 @@ ggplot(pred.df, aes(x=DOY, y= Pred, color=as.factor(fYear),group=Obs))+
   geom_line(alpha=.1) +
   geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7)
 
+
+
+
+###### Quickly doing a gam model to  compare
+library(mgcv)
+
+# Lets expand our toy data frame
+toy.df <- filter(full.df, SciName== "Aedes vexans" & Site == "WOOD")
+
+unique(toy.df$Year)
+
+## summarize to DOY level
+toy.df <- toy.df %>% #filter(Plot == "WOOD_039") %>% 
+  group_by(DOY,Plot, Year) %>% 
+  summarise(Count = sum(Count),
+            TrapHours= sum(TrapHours)) %>% ungroup()
+
+toy.df$fYear <- as.factor(toy.df$Year)
+toy.df$Obs <- as.character(1:nrow(toy.df))
+
+toy.df <- toy.df %>% filter(Year ==2017)
+
+
+gam1 <- gam(Count ~ s(DOY) + offset(log(TrapHours)), family=poisson(link="log"),
+            data=toy.df, method= "REML", knots =list(DOY=c(88,298)) )
+
+gam.df <- data.frame( DOY = as.integer(88:298))
+
+gam.df$TrapHours <- 24
+ggplot(gam.df, aes(x=DOY, y= Fit/TrapHours))+ geom_line(size=2,color="blue") +
+  geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+gam.df$Fit <- predict(gam1, gam.df, type="response")
+
+
+
+## checking overdispersion
