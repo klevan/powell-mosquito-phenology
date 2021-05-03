@@ -4,12 +4,15 @@ data {
 	matrix[N, p] X; // matrix of observation level parameters 
 	int y[N]; // vector of response variable data
 	vector[N] offset; // vector of time for offset
+	int G; // number of plots
+	matrix[N, G] Plot; // matrix of plot assignment per observation
 
 }
 
 parameters {
 	vector[p] beta; // vector of betas for the different parameters
 	vector[N] epsilon; // vector of observation random effects
+	vector[G] alpha; // vector of random intercept effect
 	real<lower =0> sigma;
 }
 
@@ -18,9 +21,11 @@ model {
 	beta ~ normal(0, 5);
 	sigma ~ normal(0,3);
 	epsilon ~ normal(0,sigma);
+	alpha ~ normal(0,5);
 	
 	//likelihood
 	for ( n in 1:N){
-	y[n] ~ poisson_log(X[n,]*beta + epsilon[n] + log(offset[n]));
+	y[n] ~ poisson_log(X[n,]*beta + epsilon[n] +
+	 Plot[n,]*alpha + log(offset[n]));
 	}
 }

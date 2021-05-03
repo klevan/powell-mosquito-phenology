@@ -76,7 +76,8 @@ toy.year.df$MosDen <- as.integer(round(toy.year.df$Count/toy.year.df$TrapHours,0
 # k = scaling factor proportional to the annual per capita birth rate
 # t = the time steps will be the DOY
 # s = birthing synchrony, how wide and tall the birthing peak is
-# phi = the timing of the different pulses
+# phi = the number of birth pulse events 
+# omega = is time between birth pulse? 
 
 bp <-function(k ,s, phi,tmin, tmax){
   # vector to store my predicted abundance patterns
@@ -93,11 +94,11 @@ bp <-function(k ,s, phi,tmin, tmax){
 }
 
 
-at <- bp(k =6.24 ,s =8.01, phi =3.85 ,tmin = min(toy.year.df$DOY),
+at <- bp(k =6.24 ,s =8.01, phi =.75 ,tmin = min(toy.year.df$DOY),
          tmax= max(toy.year.df$DOY))
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
-points(y=at, x=75:319,type="l")
+points(y=at, x=89:298,type="l")
 
 #### Cosine function 
 

@@ -40,7 +40,7 @@ str(complete.df)
 # selecting the needed columns and data to merge with count data
 cont.df <- contigus.df %>% select( -c("Lat", "Long", "Date"))
 
-# Joining datasets so that prism data is now linked to count data
+# Joining data sets so that prism data is now linked to count data
 full.df <- left_join(complete.df, cont.df, by=c("Plot","Year","DOY"))
 
 ## Number of rows should match complete.df of 620662
@@ -48,7 +48,7 @@ dim(full.df) # 620662 X 33
 
 ############ subsetting to the single species, site and year #########
 
-# We are only intersted in Aedes vexans from WOOD site
+# We are only interested in Aedes vexans from WOOD site
 toy.df <- filter(full.df, SciName== "Aedes vexans" & Site == "WOOD")
 
 unique(toy.df$Year)
@@ -137,10 +137,9 @@ ggplot(dum.df,aes(x=DOY, y = Pred.t))+geom_line(size=2)+
 ## bayesian approach
 
 poly.mat <- matrix( c(rep(1,nrow(toy.df)), poly(toy.df$DOY, 2)[,1], 
-                    poly(toy.df$DOY, 2)[,2] ,poly(toy.df$DOY, 3)[,3], 
-                    poly(toy.df$DOY,4)[,4] ) , ncol=5  )
+                    poly(toy.df$DOY, 2)[,2]) , ncol=3  )
 
-stan_d <- list( n= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
+stan_d <- list( N= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
                 y=toy.df$Count, offset = toy.df$TrapHours)
 
 output <- stan( './R_Script/Stan_Models/initModel.stan', data=stan_d, iter = 4000)
@@ -148,9 +147,8 @@ output <- stan( './R_Script/Stan_Models/initModel.stan', data=stan_d, iter = 400
 ## print estimated coefficients
 print(output, pars = c("beta", "lp__"))
 
-output$yHat
 # lets compare to the simple glm version of the model
-simple.m <- glmer( Count ~ poly(scale(DOY),4,raw=F)+offset(log(TrapHours))+
+simple.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours))+
                      (1|Obs),
                  family="poisson", data=toy.df)
 summary(simple.m)
@@ -167,24 +165,17 @@ pairs(output)
 ## lets plot the line of best fit
 post <- rstan::extract(output)
 
-
- 
-               
 # getting the orthogonal polynomial terms
 dum.df<- as.data.frame(model.matrix(simple.m))
 
-colnames(dum.df) <- c("intercept", "sDOY", "sDOY2", "sDOY3", "sDOY4")
+colnames(dum.df) <- c("intercept", "sDOY", "sDOY2")
 
 dum.df$DOY <- toy.df$DOY
-
-
-n_iter <- length(post$lp__)
 
 t <- 1
 for( i in 1:1000){
   pred <- exp( post$beta[i,1] + post$beta[i,2]*dum.df$sDOY+ 
-                 post$beta[i,3]*dum.df$sDOY2+ 
-                 post$beta[i,4]*dum.df$sDOY3+post$beta[i,5]*dum.df$sDOY4)
+                 post$beta[i,3]*dum.df$sDOY2)
   dummy.df <- cbind.data.frame(dum.df$DOY,pred)
   dummy.df$obs <- as.factor(i)
   if(t == 1 ){
@@ -212,22 +203,99 @@ ggplot(pred.df, aes(x=DOY, y= Pred, group=Obs))+ geom_line(alpha=.1,color="blue"
          axis.text.y  = element_text(vjust=0.5,color = "black"),
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
-  
-## checking overdispersion
+   
+# While the model captures the simple pattern of increase mosquito density
+# during the summer season and decrease later in the season however it fails
+# to capture the magnitude and the multiple peaks, pretty sure the multiple
+# peaks lets try a different model structure to see if it helps
 
-y_new <- array(dim=c(n_iter, nrow(poly.mat)))
-var_new <- rep(NA, n_iter)
+# Model options:
+#               1) Hurdle model: Model the occurrence and abundance as two
+#                  separate processes
+#               2) Auto regressive model: account for the temporal auto-correlation
+#               3) adjust the random model structure to account for variation
+#                  in both slope and intercept based on plot 
 
-for( i in 1:n_iter){
-  iter <- as.character(i)
-  y_new[i,] <- rpois(nrow(poly.mat),exp(sum(post$beta[i,1]+post$beta[i,2]+post$beta[i,1]+
-                                          post$epsilon[i,])))
-  var_new[i] <- var(y_new[i,])
+## random intercept
+
+
+## using same data from before
+poly.mat <- matrix( c(rep(1,nrow(toy.df)), poly(toy.df$DOY, 2)[,1], 
+                      poly(toy.df$DOY, 2)[,2]) , ncol=3  )
+plot.mat <- model.matrix(toy.df$Count ~ 0 + toy.df$Plot)
+
+stan_d <- list( N= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
+                Plot = plot.mat, G = ncol(plot.mat),
+                y=toy.df$Count, offset = toy.df$TrapHours)
+
+output <- stan( './R_Script/Stan_Models/MultilevelModel.stan',
+                data=stan_d, iter = 2000)
+
+## print estimated coefficients
+print(output, pars = c("alpha"))
+traceplot(output)
+
+
+
+## lets plot the line of best fit
+post <- rstan::extract(output)
+
+# getting the orthogonal polynomial terms
+dum.df<- as.data.frame(model.matrix(simple.m))
+
+colnames(dum.df) <- c("intercept", "sDOY", "sDOY2")
+
+dum.df$DOY <- toy.df$DOY
+
+t <- 1
+for( i in 1:1000){
+  pred <- exp( post$beta[i,1] + post$beta[i,2]*dum.df$sDOY+ 
+                 post$beta[i,3]*dum.df$sDOY2)
+  dummy.df <- cbind.data.frame(dum.df$DOY,pred)
+  dummy.df$obs <- as.factor(i)
+  if(t == 1 ){
+    pred.df <- dummy.df
+    t <- t +1
+  }else{
+    pred.df <- rbind.data.frame(pred.df, dummy.df)
+  }
 }
 
+colnames(pred.df) <- c("DOY", "Pred", "Obs")
+pred.df$Obs <- as.character(pred.df$Obs)
+ggplot(pred.df, aes(x=DOY, y= Pred, group=Obs))+ geom_line(alpha=.1,color="blue") +
+  geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
-hist(var_new)
-abline(v=var(toy.df$Count/toy.df$TrapHours))
+
+## Hurdle mode 
+
+## using same data from before
+poly.mat <- matrix( c(rep(1,nrow(toy.df)), poly(toy.df$DOY, 2)[,1], 
+                      poly(toy.df$DOY, 2)[,2]) , ncol=3  )
+model.matrix(toy.df$Count ~ 0 + toy.df$Plot)
+stan_d <- list( N= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
+                y=toy.df$Count, offset = toy.df$TrapHours)
+
+output <- stan( './R_Script/Stan_Models/SimpleHurdle.stan',
+                data=stan_d, iter = 2000)
+
+## print estimated coefficients
+print(output, pars = c("theta", "lambda"))
+traceplot(output)
+
 ## what if we wanted to model across different years
 
 # Lets expand our toy data frame
