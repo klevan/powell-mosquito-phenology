@@ -311,15 +311,16 @@ print(Hurdle_output, pars = c("theta", "lambda"))
 traceplot(Hurdle_output)
 
 
-
 ## print estimated coefficients
 print(Hurdle_output, pars = c("alpha_poisson"))
 traceplot(output)
 
-save(post, file="hurdle_output.rmd")
+#save(post, file="hurdle_output.rmd")
 
 ## lets plot the line of best fit
 post <- rstan::extract(Hurdle_output)
+
+## only the poisson component of the hurdle model
 
 # getting the orthogonal polynomial terms
 dum.df<- as.data.frame(model.matrix(simple.m))
@@ -341,20 +342,7 @@ for( i in 1:200){
                  post$alpha_poisson[i,7]*plot.df[,7]+ 
                  post$alpha_poisson[i,8]*plot.df[,8]+ 
                  post$alpha_poisson[i,9]*plot.df[,9]+ 
-                 post$alpha_poisson[i,10]*plot.df[,10] ) *
-    (1-plogis( post$theta[i,1] + post$theta[i,2]*dum.df$sDOY+ 
-                post$theta[i,3]*dum.df$sDOY2 +
-                post$alpha_bern[i,1]*plot.df[,1]+
-                post$alpha_bern[i,2]*plot.df[,2] + 
-                post$alpha_bern[i,3]*plot.df[,3]+ 
-                post$alpha_bern[i,4]*plot.df[,4]+ 
-                post$alpha_bern[i,5]*plot.df[,5]+ 
-                post$alpha_bern[i,6]*plot.df[,6]+ 
-                post$alpha_bern[i,7]*plot.df[,7]+ 
-                post$alpha_bern[i,8]*plot.df[,8]+ 
-                post$alpha_bern[i,9]*plot.df[,9]+ 
-                post$alpha_bern[i,10]*plot.df[,10] ) )
-  dummy.df <- cbind.data.frame(dum.df$DOY,pred,dum.df$Plot)
+                 post$alpha_poisson[i,10]*plot.df[,10] ) 
   dummy.df <- cbind.data.frame(dum.df$DOY,pred,dum.df$Plot)
   dummy.df$obs <- as.factor(i)
   if(t == 1 ){
@@ -386,7 +374,7 @@ ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alph
          strip.text.x = element_text(size=20) )
 
 
-
+## only the bernoulli component of the hurdle model
 dum.df<- as.data.frame(model.matrix(simple.m))
 plot.df <- as.data.frame(model.matrix(toy.df$Count ~ 0 + toy.df$Plot))
 colnames(dum.df) <- c("intercept", "sDOY", "sDOY2")
@@ -430,6 +418,75 @@ ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),
   geom_point(data=toy.df, aes(x=DOY,y=MosPA),size=2, alpha=.7) +
   # facet_wrap(~Plot)+
   theme_classic() + ylab("Mosquito detection")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+### combining for the full model
+
+## only the poisson component of the hurdle model
+
+# getting the orthogonal polynomial terms
+dum.df<- as.data.frame(model.matrix(simple.m))
+plot.df <- as.data.frame(model.matrix(toy.df$Count ~ 0 + toy.df$Plot))
+colnames(dum.df) <- c("intercept", "sDOY", "sDOY2")
+dum.df$DOY <- toy.df$DOY
+dum.df$Plot <- toy.df$Plot
+
+t <- 1
+for( i in 1:200){
+  pred <- exp( post$lambda[i,1] + post$lambda[i,2]*dum.df$sDOY+ 
+                 post$lambda[i,3]*dum.df$sDOY2 +
+                 post$alpha_poisson[i,1]*plot.df[,1]+
+                 post$alpha_poisson[i,2]*plot.df[,2] + 
+                 post$alpha_poisson[i,3]*plot.df[,3]+ 
+                 post$alpha_poisson[i,4]*plot.df[,4]+ 
+                 post$alpha_poisson[i,5]*plot.df[,5]+ 
+                 post$alpha_poisson[i,6]*plot.df[,6]+ 
+                 post$alpha_poisson[i,7]*plot.df[,7]+ 
+                 post$alpha_poisson[i,8]*plot.df[,8]+ 
+                 post$alpha_poisson[i,9]*plot.df[,9]+ 
+                 post$alpha_poisson[i,10]*plot.df[,10] ) *
+    (1-plogis( post$theta[i,1] + post$theta[i,2]*dum.df$sDOY+ 
+                post$theta[i,3]*dum.df$sDOY2 +
+                post$alpha_bern[i,1]*plot.df[,1]+
+                post$alpha_bern[i,2]*plot.df[,2]+ 
+                post$alpha_bern[i,3]*plot.df[,3]+ 
+                post$alpha_bern[i,4]*plot.df[,4]+ 
+                post$alpha_bern[i,5]*plot.df[,5]+ 
+                post$alpha_bern[i,6]*plot.df[,6]+ 
+                post$alpha_bern[i,7]*plot.df[,7]+ 
+                post$alpha_bern[i,8]*plot.df[,8]+ 
+                post$alpha_bern[i,9]*plot.df[,9]+ 
+                post$alpha_bern[i,10]*plot.df[,10] ))
+  dummy.df <- cbind.data.frame(dum.df$DOY,pred,dum.df$Plot)
+  dummy.df <- cbind.data.frame(dum.df$DOY,pred,dum.df$Plot)
+  dummy.df$obs <- as.factor(i)
+  if(t == 1 ){
+    pred.df <- dummy.df
+    t <- t +1
+  }else{
+    pred.df <- rbind.data.frame(pred.df, dummy.df)
+  }
+}
+
+colnames(pred.df) <- c("DOY", "Pred", "Plot", "Obs")
+pred.df$Obs <- as.character(pred.df$Obs)
+pred.df$Grp <- paste(pred.df$Plot, "-", pred.df$Obs)
+
+ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alpha=.1) +
+  geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
+  # facet_wrap(~Plot)+
+  theme_classic() + ylab("Mosquito density")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
