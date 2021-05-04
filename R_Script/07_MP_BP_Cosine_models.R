@@ -10,10 +10,9 @@
 # load/ install required libraries for prism data acquisition and clean up
 
 #Set working directory
+setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
-#setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
-
-setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+#setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
@@ -97,7 +96,7 @@ bp <-function(k ,s, phi, omega,tmin, tmax){
 
 
 
-at <- bp(k =6.24 ,s =8.01, phi =.75 ,tmin = min(toy.year.df$DOY),
+at <- bp(k =6.24 ,s =8.01, phi =2.5, omega = 3 ,tmin = min(toy.year.df$DOY),
          tmax= max(toy.year.df$DOY))
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
