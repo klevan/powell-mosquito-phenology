@@ -11,7 +11,7 @@
 
 #Set working directory
 
-setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
+setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
@@ -38,7 +38,7 @@ str(complete.df)
 #################### Combining data sets #############
 
 # selecting the needed columns and data to merge with count data
-cont.df <- contigus.df %>% select( -c("Lat", "Long", "Date"))
+cont.df <- contigus.df %>% dplyr::select( -c("Lat", "Long", "Date"))
 
 # Joining data sets so that prism data is now linked to count data
 full.df <- left_join(complete.df, cont.df, by=c("Plot","Year","DOY"))
@@ -93,7 +93,8 @@ performance::check_overdispersion(full.m) # Very over dispersed, need to model
 
 toy.df$Obs <- as.factor(1:nrow(toy.df))
 
-full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours))+
+full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)*as.factor(Year)+
+                 offset(log(TrapHours))+
                    (1|Plot) + (1|Obs),
                  family="poisson", data=toy.df,
                  control = glmerControl(optimizer = "bobyqa", 
@@ -137,10 +138,13 @@ ggplot(dum.df,aes(x=DOY, y = Pred.t))+geom_line(size=2)+
 ## bayesian approach
 
 poly.mat <- matrix( c(rep(1,nrow(toy.df)), poly(toy.df$DOY, 2)[,1], 
-                    poly(toy.df$DOY, 2)[,2]) , ncol=3  )
+                    poly(toy.df$DOY, 2)[,2] ), ncol=3  )
+class(poly.mat)
+
 
 stan_d <- list( N= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
                 y=toy.df$Count, offset = toy.df$TrapHours)
+
 
 output <- stan( './R_Script/Stan_Models/initModel.stan', data=stan_d, iter = 4000)
 
@@ -234,8 +238,6 @@ output <- stan( './R_Script/Stan_Models/MultilevelModel.stan',
 ## print estimated coefficients
 print(output, pars = c("alpha"))
 traceplot(output)
-
-
 
 ## lets plot the line of best fit
 post <- rstan::extract(output)

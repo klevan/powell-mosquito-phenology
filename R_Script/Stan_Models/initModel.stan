@@ -1,9 +1,11 @@
 data {
 	int N; // sample size
+
 	int p; // number of coefficients
 	matrix[N, p] X; // matrix of observation level parameters 
 	int y[N]; // vector of response variable data
 	vector[N] offset; // vector of time for offset
+
 
 }
 
@@ -16,6 +18,7 @@ parameters {
 model {
   // Priors
 	beta ~ normal(0, 5);
+
 	sigma ~ normal(0,3);
 	epsilon ~ normal(0,sigma);
 	
@@ -24,3 +27,4 @@ model {
 	y[n] ~ poisson_log(X[n,]*beta + epsilon[n] + log(offset[n]));
 	}
 }
+
