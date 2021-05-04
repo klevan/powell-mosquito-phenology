@@ -502,6 +502,8 @@ ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alph
 
 
 
+###### Cool lets move on to the autoregressive
+ 
 
 
 
