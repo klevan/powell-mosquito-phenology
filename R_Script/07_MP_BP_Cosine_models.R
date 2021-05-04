@@ -11,7 +11,9 @@
 
 #Set working directory
 
-setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
+#setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
+
+setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
@@ -79,7 +81,7 @@ toy.year.df$MosDen <- as.integer(round(toy.year.df$Count/toy.year.df$TrapHours,0
 # phi = the number of birth pulse events 
 # omega = is time between birth pulse? 
 
-bp <-function(k ,s, phi,tmin, tmax){
+bp <-function(k ,s, phi, omega,tmin, tmax){
   # vector to store my predicted abundance patterns
   season <- tmax - tmin
   pred_bp <- rep(NA, (season) )
@@ -87,11 +89,12 @@ bp <-function(k ,s, phi,tmin, tmax){
   # Looping through the time steps to predict abundance
   for( i in 1:season){
     time <- i/season
-    pred_bp[i] <- k * sqrt(s/pi) * exp( -s * cos( (pi*time) * (phi) )^2 )
+    pred_bp[i] <- k * sqrt(s/pi) * exp( -s * cos( (pi*time) * (phi) - omega )^2 )
   }
   # returning the vector of predictions
   return( pred_bp )
 }
+
 
 
 at <- bp(k =6.24 ,s =8.01, phi =.75 ,tmin = min(toy.year.df$DOY),
@@ -131,7 +134,7 @@ plot(y=at, x= 89:298)
 ## negative log likelihood for birth pulse model
 
 nll_BP <- function(par, n , tmin, tmax){
-  pred <- bp( k= par[1], s= par[2], phi=par[3], tmin= tmin, tmax=tmax)
+  pred <- bp( k= par[1], s= par[2], phi=par[3], omega= par[4], tmin= tmin, tmax=tmax)
   nll <- sum(- dpois(n, lambda = mean(pred), log=T))
   return(nll)
 }
@@ -144,6 +147,7 @@ nll_Cosine <- function(par, n , tmin, tmax){
 
 
 # Optimizing the GP model
+
 
 start <- c(6, 10,1)
 
@@ -166,7 +170,9 @@ wAIC_BP # 1918.715  # no difference due to high sample size
 
 ## Testing fitted parameters
 
+
 fit <- bp(k =7.66 ,s =9.08, phi = 1 , tmin= 74, tmax=319)
+
 
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
@@ -190,7 +196,7 @@ ggplot( toy.year.df,aes(x=DOY, y=MosDen)) + geom_point(size=2,alpha=.7)+
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
 
-nll_Cosine <- function(par, n , tmin, tmax){
+  nll_Cosine <- function(par, n , tmin, tmax){
   pred <- cosinePop( k= par[1], phi=par[2], tmin= tmin, tmax=tmax)
   nll <- -sum(dpois(n, lambda = mean(pred), log=T))
   return(nll)
@@ -242,3 +248,100 @@ wAIC_cosine #  1916.708 # no difference due to high sample size
 
 ### Cosine model has a slightly lower AIC score compared to birth pulse model
 ## delta AIC =~ 2 
+
+
+######## Exploring the likelihood profile for the BP function #####
+
+## Initial model parameter and fit
+fit <- bp(k =12 ,s =3.5, phi = 1.3 , omega = 1.95,
+          tmin= 74, tmax=319)
+
+plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
+points(y=fit, x=75:319,type="l")
+
+## Getting intial log likelihood
+pars <- c(12,3.5,1.3,1.95)
+
+nll_BP(par = pars,n = toy.year.df$MosDen, tmin=74,tmax=319) # 1000.817
+
+
+### K parameter
+k_profile.df <- data.frame( 
+                            Par = as.character(rep('K', 100)),
+                            Coef = as.numeric(seq(2,20, length.out = 100)))
+
+k_profile.df$nll <- NA
+
+for( i in 1:100){
+  pars <- c(k_profile.df$Coef[i],3.5,1.3,1.95)
+   nll <- nll_BP(par = pars,n = toy.year.df$MosDen, tmin=74,tmax=319) 
+   k_profile.df$nll[i] <- nll
+
+}
+
+## Synchrony parameter
+
+s_profile.df <- data.frame( 
+  Par = as.character(rep('s', 100)),
+  Coef = as.numeric(seq(1,100, length.out = 100)))
+
+s_profile.df$nll <- NA
+
+for( i in 1:100){
+  pars <- c(12,s_profile.df$Coef[i],1.3,1.95)
+  nll <- nll_BP(par = pars,n = toy.year.df$MosDen, tmin=74,tmax=319) 
+  s_profile.df$nll[i] <- nll
+  
+}
+
+##phi parameter
+
+phi_profile.df <- data.frame( 
+  Par = as.character(rep('phi', 100)),
+  Coef = as.numeric(seq(0,5, length.out = 100)))
+
+phi_profile.df$nll <- NA
+
+for( i in 1:100){
+  pars <- c(12,2.4,phi_profile.df$Coef[i],1.95)
+  nll <- nll_BP(par = pars,n = toy.year.df$MosDen, tmin=74,tmax=319) 
+  phi_profile.df$nll[i] <- nll
+  
+}
+
+## omega parameter
+
+om_profile.df <- data.frame( 
+  Par = as.character(rep('omega', 100)),
+  Coef = as.numeric(seq(0,5, length.out = 100)))
+
+om_profile.df$nll <- NA
+
+for( i in 1:100){
+  pars <- c(12,2.4,1.3,om_profile.df$Coef[i])
+  nll <- nll_BP(par = pars,n = toy.year.df$MosDen, tmin=74,tmax=319) 
+  om_profile.df$nll[i] <- nll
+  
+}
+
+nll_profile <- rbind.data.frame(k_profile.df,s_profile.df,
+                                phi_profile.df,om_profile.df)
+
+
+ggplot(nll_profile,aes(x=Coef,y=nll,color=Par))+
+  geom_line(size=2, alpha=.5)+ facet_wrap(~Par, scales="free") + 
+  theme_classic()+ xlab( "Parameter value") +
+  ylab( "negative log likelihood")+
+  theme( legend.key.size = unit(1, "cm"),
+         legend.title =element_text(size=18,margin = margin(r = 40, unit = "pt")),
+         legend.text=element_text(size=18,margin = margin(r = 40, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, size=16, color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         axis.text.y=element_text(vjust=0.5, size=16),
+         strip.text.x = element_text(size=20) )
+
