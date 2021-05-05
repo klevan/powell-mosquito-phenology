@@ -11,7 +11,9 @@
 
 #Set working directory
 
-setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+#setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+
+setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
@@ -93,7 +95,7 @@ performance::check_overdispersion(full.m) # Very over dispersed, need to model
 
 toy.df$Obs <- as.factor(1:nrow(toy.df))
 
-full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)*as.factor(Year)+
+full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+
                  offset(log(TrapHours))+
                    (1|Plot) + (1|Obs),
                  family="poisson", data=toy.df,
@@ -177,7 +179,7 @@ colnames(dum.df) <- c("intercept", "sDOY", "sDOY2")
 dum.df$DOY <- toy.df$DOY
 
 t <- 1
-for( i in 1:1000){
+for( i in 1:100){
   pred <- exp( post$beta[i,1] + post$beta[i,2]*dum.df$sDOY+ 
                  post$beta[i,3]*dum.df$sDOY2)
   dummy.df <- cbind.data.frame(dum.df$DOY,pred)
@@ -278,7 +280,7 @@ pred.df$Obs <- as.character(pred.df$Obs)
 pred.df$Grp <- paste(pred.df$Plot, "-", pred.df$Obs)
 ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alpha=.1) +
   geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
-  facet_wrap(~Plot)+
+  #facet_wrap(~Plot)+
   theme_classic() + ylab("Mosquito density")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
