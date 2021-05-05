@@ -141,6 +141,8 @@ ggplot(dum.df,aes(x=DOY, y = Pred.t))+geom_line(size=2)+
 
 poly.mat <- matrix( c(rep(1,nrow(toy.df)), poly(toy.df$DOY, 2)[,1], 
                     poly(toy.df$DOY, 2)[,2] ), ncol=3  )
+
+
 class(poly.mat)
 
 
@@ -511,7 +513,82 @@ ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alph
 
 
 
+### Autoregressive model
 
+## This model is a bit different, instead of having DOY and DOY2 as response
+## variables we will largely just model mosquitoes as a function of the 
+## previous sampling event dates
+## as a result i need to restrucutre the data a bit
+
+
+auto.df <- toy.df %>% dplyr::arrange(Plot, DOY)
+#plot_Obs <- auto.df %>%  group_by(Plot) %>% summarize( SampleN= n())
+
+auto.df <- auto.df %>% filter( Plot == "WOOD_032")
+
+
+
+stan_d <- list( N= nrow(auto.df), 
+                P =1,
+                y=auto.df$Count, offset=auto.df$TrapHours)
+
+auto_output <- stan( './R_Script/Stan_Models/Simple_ARmodel.stan',
+                       data=stan_d, iter = 2000)
+
+#pairs(auto_output)
+## print estimated coefficients
+print(auto_output, pars = c("alpha","beta", "lp__"))
+traceplot(auto_output)
+
+post <- extract(auto_output)
+
+dum.df<- select(auto.df, c("DOY","Count", "TrapHours") )
+
+
+t <- 1
+for( i in 1:200){
+  pred <- exp( post$lambda[i,1] + post$lambda[i,2]*dum.df$sDOY+ 
+                 post$lambda[i,3]*dum.df$sDOY2 +
+                 post$alpha_poisson[i,1]*plot.df[,1]+
+                 post$alpha_poisson[i,2]*plot.df[,2] + 
+                 post$alpha_poisson[i,3]*plot.df[,3]+ 
+                 post$alpha_poisson[i,4]*plot.df[,4]+ 
+                 post$alpha_poisson[i,5]*plot.df[,5]+ 
+                 post$alpha_poisson[i,6]*plot.df[,6]+ 
+                 post$alpha_poisson[i,7]*plot.df[,7]+ 
+                 post$alpha_poisson[i,8]*plot.df[,8]+ 
+                 post$alpha_poisson[i,9]*plot.df[,9]+ 
+                 post$alpha_poisson[i,10]*plot.df[,10] ) )
+  dummy.df <- cbind.data.frame(dum.df$DOY,pred,dum.df$Plot)
+  dummy.df <- cbind.data.frame(dum.df$DOY,pred,dum.df$Plot)
+  dummy.df$obs <- as.factor(i)
+  if(t == 1 ){
+    pred.df <- dummy.df
+    t <- t +1
+  }else{
+    pred.df <- rbind.data.frame(pred.df, dummy.df)
+  }
+}
+
+colnames(pred.df) <- c("DOY", "Pred", "Plot", "Obs")
+pred.df$Obs <- as.character(pred.df$Obs)
+pred.df$Grp <- paste(pred.df$Plot, "-", pred.df$Obs)
+ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alpha=.1) +
+  geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
+  facet_wrap(~Plot)+
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 ## what if we wanted to model across different years
 
