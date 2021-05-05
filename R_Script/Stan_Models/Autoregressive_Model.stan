@@ -38,7 +38,7 @@ model {
    log(loc_offset[n]))
     }
     z[i]~ normal(0,5);
-    pos pos +local_N;
+    pos = pos +local_N;
   }
   // hyperparameters
   global_K ~ cauchy(0,5)
