@@ -11,7 +11,8 @@
 
 #Set working directory
 
-setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+#setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
@@ -28,6 +29,7 @@ load("./Data/DailyPrismMod.Rda")
 # Count data to get the domains and lat and long information
 load("./Data/combinded.Rda")
 
+contigus.df <- at1
 
 # data structure for the daily data set
 
@@ -44,7 +46,7 @@ cont.df <- contigus.df %>% dplyr::select( -c("Lat", "Long", "Date"))
 full.df <- left_join(complete.df, cont.df, by=c("Plot","Year","DOY"))
 
 ## Number of rows should match complete.df of 620662
-dim(full.df) # 620662 X 33
+dim(full.df) # 620662 X 30
 
 ############ subsetting to the single species, site and year #########
 
@@ -93,7 +95,7 @@ performance::check_overdispersion(full.m) # Very over dispersed, need to model
 
 toy.df$Obs <- as.factor(1:nrow(toy.df))
 
-full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)*as.factor(Year)+
+full.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+
                  offset(log(TrapHours))+
                    (1|Plot) + (1|Obs),
                  family="poisson", data=toy.df,
@@ -149,7 +151,7 @@ stan_d <- list( N= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
 init_output <- stan( './R_Script/Stan_Models/initModel.stan', data=stan_d, iter = 4000)
 
 ## print estimated coefficients
-print(inti_output, pars = c("beta", "lp__"))
+print(init_output, pars = c("beta", "lp__"))
 
 # lets compare to the simple glm version of the model
 simple.m <- glmer( Count ~ poly(scale(DOY),2,raw=F)+offset(log(TrapHours))+
@@ -177,7 +179,7 @@ colnames(dum.df) <- c("intercept", "sDOY", "sDOY2")
 dum.df$DOY <- toy.df$DOY
 
 t <- 1
-for( i in 1:1000){
+for( i in 1:100){
   pred <- exp( post$beta[i,1] + post$beta[i,2]*dum.df$sDOY+ 
                  post$beta[i,3]*dum.df$sDOY2)
   dummy.df <- cbind.data.frame(dum.df$DOY,pred)
@@ -234,6 +236,7 @@ stan_d <- list( N= nrow(poly.mat), p = ncol(poly.mat), X = poly.mat,
 
 multi_output <- stan( './R_Script/Stan_Models/MultilevelModel.stan',
                 data=stan_d, iter = 2000)
+
 
 ## print estimated coefficients
 print(multi_output, pars = c("alpha"))
@@ -318,7 +321,7 @@ traceplot(Hurdle_output)
 print(Hurdle_output, pars = c("alpha_poisson"))
 traceplot(output)
 
-#save(post, file="hurdle_output.rmd") saving the hurdle output so that i dont
+#save(post, file="hurdle_output.rmd")# saving the hurdle output so that i dont
 # have to rerun the models if r crashes
 
 ## lets plot the line of best fit
@@ -326,7 +329,7 @@ post <- rstan::extract(Hurdle_output)
 
 
 ### Count portion of the hurdle model
-S
+
 # getting the orthogonal polynomial terms
 dum.df<- as.data.frame(model.matrix(simple.m))
 plot.df <- as.data.frame(model.matrix(toy.df$Count ~ 0 + toy.df$Plot))
@@ -491,7 +494,7 @@ pred.df$Obs <- as.character(pred.df$Obs)
 pred.df$Grp <- paste(pred.df$Plot, "-", pred.df$Obs)
 ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alpha=.1) +
   geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
-  # facet_wrap(~Plot)+
+   facet_wrap(~Plot)+
   theme_classic() + ylab("Mosquito density")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
@@ -505,6 +508,7 @@ ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alph
          axis.text.y  = element_text(vjust=0.5,color = "black"),
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
+
 
 
 
