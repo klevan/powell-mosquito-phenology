@@ -10,10 +10,9 @@
 # load/ install required libraries for prism data acquisition and clean up
 
 #Set working directory
+setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
-#setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
-
-setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+#setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
@@ -54,7 +53,7 @@ unique(toy.df$Year)
 
 ## lets first just estimate for one year, 2017 was a good year for me so 
 
-toy.year.df <-filter(toy.df, Year == 2016)
+toy.year.df <-filter(toy.df, Year == 2017)
 
 ## summarize to DOY level
 toy.year.df <- toy.year.df %>% #filter(Plot == "WOOD_039") %>% 
@@ -78,7 +77,8 @@ toy.year.df$MosDen <- as.integer(round(toy.year.df$Count/toy.year.df$TrapHours,0
 # k = scaling factor proportional to the annual per capita birth rate
 # t = the time steps will be the DOY
 # s = birthing synchrony, how wide and tall the birthing peak is
-# phi = the timing of the different pulses
+# phi = the number of birth pulse events 
+# omega = is time between birth pulse? 
 
 bp <-function(k ,s, phi, omega,tmin, tmax){
   # vector to store my predicted abundance patterns
@@ -95,11 +95,12 @@ bp <-function(k ,s, phi, omega,tmin, tmax){
 }
 
 
-at <- bp(k =6.24 ,s =8.01, phi =2, omega = 100,tmin = min(toy.year.df$DOY),
+
+at <- bp(k =6.24 ,s =8.01, phi =2.5, omega = 3 ,tmin = min(toy.year.df$DOY),
          tmax= max(toy.year.df$DOY))
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
-points(y=at, x=75:319,type="l")
+points(y=at, x=89:298,type="l")
 
 #### Cosine function 
 
@@ -146,7 +147,8 @@ nll_Cosine <- function(par, n , tmin, tmax){
 
 # Optimizing the GP model
 
-start <- c(5, 2,2,1)
+
+start <- c(6, 10,1)
 
 optim_BP <- optim( start, nll_BP,  n = toy.year.df$MosDen,
                    tmin = min(toy.year.df$DOY), tmax = max(toy.year.df$DOY))
@@ -167,16 +169,31 @@ wAIC_BP # 1918.715  # no difference due to high sample size
 
 ## Testing fitted parameters
 
-fit <- bp(k =12 ,s =3.5, phi = 1.3 , omega = 1.95,
-            tmin= 74, tmax=319)
 
+fit <- bp(k =7.66 ,s =9.08, phi = 1 , tmin= 74, tmax=319)
 
 
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
 points(y=fit, x=75:319,type="l")
 
+fit.df <- data.frame( fit= as.numeric(fit), DOY = as.integer(75:319))
 
+ggplot( toy.year.df,aes(x=DOY, y=MosDen)) + geom_point(size=2,alpha=.7)+
+  geom_line(data=fit.df,aes(x=DOY,y=fit),size=2,color='blue') + 
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
   nll_Cosine <- function(par, n , tmin, tmax){
   pred <- cosinePop( k= par[1], phi=par[2], tmin= tmin, tmax=tmax)
@@ -197,6 +214,24 @@ fit <-  cosinePop(k=5.26,phi =1.87 , tmin= 74, tmax=319)
 
 plot(x=toy.year.df$DOY, y= toy.year.df$MosDen)
 points(y=fit, x=75:319,type="l")
+
+fit.df <- data.frame( fit= as.numeric(fit), DOY = as.integer(75:319))
+
+ggplot( toy.year.df,aes(x=DOY, y=MosDen)) + geom_point(size=2,alpha=.7)+
+  geom_line(data=fit.df,aes(x=DOY,y=fit),size=2,color='blue') + 
+  theme_classic() + ylab("Mosquito density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 
 nll <- optim_BP$value # likelihood
