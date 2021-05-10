@@ -283,7 +283,7 @@ pred.df$Obs <- as.character(pred.df$Obs)
 pred.df$Grp <- paste(pred.df$Plot, "-", pred.df$Obs)
 ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alpha=.1) +
   geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
-  facet_wrap(~Plot)+
+ # facet_wrap(~Plot)+
   theme_classic() + ylab("Mosquito density")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
@@ -496,7 +496,7 @@ pred.df$Obs <- as.character(pred.df$Obs)
 pred.df$Grp <- paste(pred.df$Plot, "-", pred.df$Obs)
 ggplot(pred.df, aes(x=DOY, y= Pred,  color=Plot))+ geom_line(aes(group=Grp),alpha=.1) +
   geom_point(data=toy.df, aes(x=DOY,y=Count/TrapHours),size=2, alpha=.7) +
-   facet_wrap(~Plot)+
+   #facet_wrap(~Plot)+
   theme_classic() + ylab("Mosquito density")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),

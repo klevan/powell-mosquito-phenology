@@ -25,7 +25,7 @@ load("./Data/DailyPrismMod.Rda")
 # Count data to get the domains and lat and long information
 load("./Data/combinded.Rda")
 
-
+cont
 # data structure for the daily data set
 
 str(contigus.df)
