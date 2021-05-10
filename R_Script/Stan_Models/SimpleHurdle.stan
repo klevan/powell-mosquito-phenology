@@ -19,8 +19,8 @@ parameters {
 
 model {
   // Priors
-	theta ~ normal(0, 5);
-	lambda ~ normal(0,5);
+	// theta ~ normal(0, 5);
+	// lambda ~ normal(0,5);
 	alpha_poisson ~ normal(0,5);
 	alpha_bern ~ normal(0,5);
 	

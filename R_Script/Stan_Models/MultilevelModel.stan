@@ -18,7 +18,10 @@ parameters {
 
 model {
   // Priors
-	beta ~ normal(0, 5);
+// Priors
+  // beta ~ normal(0,5); // Removing the prior for beta cause it is constricting
+  // the abiltiy to explore the parameter space, not specifying a prior results
+  // in stan using a non-informative prior for the beta term
 	sigma ~ normal(0,3);
 	epsilon ~ normal(0,sigma);
 	alpha ~ normal(0,5);
