@@ -38,7 +38,6 @@ model {
   }
     z[i]~ normal(0,5);
     pos = pos +local_N;
-    
   }
 
   
