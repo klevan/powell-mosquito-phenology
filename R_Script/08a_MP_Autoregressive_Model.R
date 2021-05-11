@@ -81,7 +81,7 @@ toy.df$fTime <- as.factor(toy.df$DOY)
 
 ## building the first attempt
 
-ar1.m <- glmmTMB(Count ~ ar1(fTime + offset(log(TrapHours)) +  0 |Plot ), 
+ar1.m <- glmmTMB(Count ~ gau(fTime + offset(log(TrapHours)) +  0 |Plot ), 
                              data=toy.df, family="poisson" )
 
 
@@ -100,8 +100,8 @@ ggplot(new.data, aes(x=DOY, y= exp(Pred)/TrapHours, color=Plot)) +
 
 
 
-ar1.temp.m <- glmmTMB(Count ~ ar1(fTime + offset(log(TrapHours))  + 
-                                    0|Plot )+ Tmean7*PPT14 + CumGDD, 
+ar1.temp.m <- glmmTMB(Count ~ toep(fTime + offset(log(TrapHours))  + 
+                                    0|Plot ), 
                        data=toy.df, family="poisson" )
 
 
@@ -114,6 +114,6 @@ new.data <- select(toy.df, c("fTime", "TrapHours", "Plot", "Tmean7", "DOY"))
 new.data$Pred <- predict(ar1.m, newdata = new.data)
 
 
-ggplot(new.data, aes(x=Tmean7, y= exp(Pred)/TrapHours, color=Plot)) +
-  geom_line()+ geom_point(data=toy.df,aes(x=Tmean7, y= Count/TrapHours,color=Plot))+
+ggplot(new.data, aes(x=DOY, y= exp(Pred)/TrapHours, color=Plot)) +
+  geom_line()+ geom_point(data=toy.df,aes(x=DOY, y= Count/TrapHours,color=Plot))+
   facet_wrap(~Plot)
