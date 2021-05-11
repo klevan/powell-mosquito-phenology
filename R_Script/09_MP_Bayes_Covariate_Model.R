@@ -11,8 +11,8 @@
 
 #Set working directory
 
-#setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
-setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
+setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
+#setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
 library( dplyr )
 library( tidyr )
