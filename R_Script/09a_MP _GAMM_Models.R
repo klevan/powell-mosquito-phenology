@@ -2,7 +2,7 @@
 
 # Travis McDevitt-Galles
 # 04/26/2021
-# title: 08_MP_bayesian_models
+# title: 09_MP_GAMM_models
 
 # The goal of the following script is to explore the relationship between
 # mosquito abundances and various climate factors
@@ -122,14 +122,27 @@ ggplot( dum.df, aes(x=DOY, y=exp(Pred)/TrapHours,
   facet_wrap(~Site, scales="free_y")
 
 
-
-ggplot( dum.df, aes(x=DOY, y=exp(Pred)/TrapHours,
+at1 <- toy.df %>% filter(Site=="WOOD" & fYear=="2017")
+dum.df %>% filter(Site=="WOOD" & fYear=="2017") %>% 
+ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
                     color=Site))+ 
-  geom_point(data=toy.df, aes(y=Count/TrapHours,
+  geom_point(data=at1, aes(y=Count/TrapHours,
                               x=DOY),
              color="black",size=2,alpha=.55)+
   geom_line(size=2,alpha=.75)+ theme_classic()+
-  facet_wrap(~fYear, scales="free_y")
+  xlab("DOY") + ylab("Adult A. vexans density")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
 
 
@@ -150,6 +163,96 @@ at1$Half[at1$Pro <.5] <- 0
 
 at2 <- at1 %>% group_by(fYear, Site) %>% filter( Half == 1) %>% 
   summarise( First = min(DOY))
+
+
+
+
+
+gam1 <- gamm4( Tmean7 ~ s(DOY,by=interaction(fYear,Site)),
+               random = ~ (1|Plot),
+               data=toy.df, family="gaussian")
+
+summary(gam1$gam)
+## lets try and plot this with new data
+
+DOY <- 80:300
+fYear <- c(levels(toy.df$fYear))
+plot.m <- c(levels(as.factor(toy.df$Site)))
+
+dum.df <- unique(select(toy.df, c("Plot","Site")))
+
+dum.df <- expand.grid(DOY,fYear)
+
+colnames(dum.df) <- c("DOY", "fYear")
+
+dum.df <- as.data.frame(dum.df)
+
+dum.df <- unique(select(toy.df, c("Site", "Plot")))
+
+dum.df <- tidyr::expand( dum.df, nesting(Plot,Site),DOY)
+
+
+dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
+
+#dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
+
+dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+
+
+#dum.df$Pred[dum.df$DOY < 125 ] <- NA
+#dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
+
+dum.df %>% filter(Site=="WOOD" & fYear=="2017") %>% 
+ggplot(  aes(x=DOY, y=(Pred),
+                    color=fYear))+ 
+  geom_line(size=2,alpha=.75)+ theme_classic()+
+  facet_wrap(~Site, scales="free_y")
+
+
+
+
+
+gam1 <- gamm4( PPT14 ~ s(DOY,by=interaction(fYear,Site)),
+               random = ~ (1|Plot),
+               data=toy.df, family="gaussian")
+
+summary(gam1$gam)
+## lets try and plot this with new data
+
+DOY <- 80:300
+fYear <- c(levels(toy.df$fYear))
+plot.m <- c(levels(as.factor(toy.df$Site)))
+
+dum.df <- unique(select(toy.df, c("Plot","Site")))
+
+dum.df <- expand.grid(DOY,fYear)
+
+colnames(dum.df) <- c("DOY", "fYear")
+
+dum.df <- as.data.frame(dum.df)
+
+dum.df <- unique(select(toy.df, c("Site", "Plot")))
+
+dum.df <- tidyr::expand( dum.df, nesting(Plot,Site),DOY)
+
+
+dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
+
+#dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
+
+dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+
+
+#dum.df$Pred[dum.df$DOY < 125 ] <- NA
+#dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
+at1 <- toy.df %>% filter(Site=="WOOD" & fYear=="2017")
+dum.df %>% filter(Site=="WOOD" & fYear=="2017") %>% 
+  ggplot(  aes(x=DOY, y=(Pred),
+               color=fYear))+ 
+  geom_point( data=at1, aes(x= DOY, y=PPT14))+
+  geom_line(size=2,alpha=.75)+ theme_classic()+
+  facet_wrap(~Site, scales="free_y")
+
 
 
 
