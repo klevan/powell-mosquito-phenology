@@ -103,9 +103,6 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site),DOY)
 dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
-
-dum.df$CumGDD <- mean(toy.df$CumGDD)
-dum.df$PPT14 <- mean(toy.df$PPT14 )                         
 dum.df$TrapHours <- 12
 
 dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
