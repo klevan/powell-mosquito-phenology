@@ -258,9 +258,17 @@ colnames(count.df)[7] <- "Count"
 
 temp.df <- filter( temp.df, fYear != '2013' & fYear!="2015")
 
+count.df <- count.df  %>%  group_by(fYear) %>% 
+  mutate( mCount = max(exp(Count)/TrapHours))
+
+
+temp.df <- temp.df  %>%  group_by(fYear) %>% 
+  mutate( mTemp = max(Pred))
+
+
 ggplot() +
-  geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours)*3 ), size=2, color="Navy")+
-  geom_line( data= temp.df, aes(x= DOY, y= Pred) ,color="Green",size=2)+
+  geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours)/mCount ), size=2, color="Navy")+
+  geom_line( data= temp.df, aes(x= DOY, y= Pred/mTemp) ,color="Green",size=2)+
   facet_wrap(~fYear)
 
 
