@@ -2,10 +2,10 @@
 
 # Travis McDevitt-Galles
 # 04/26/2021
-# title: 10_MP_GAMM_Figures_D09
+# title: 10_MP_GAMM_Figures_D06
 
 # The goal of the following script is to explore the relationship between
-# mosquito abundances and various climate factors for domain 9 (south dakota)
+# mosquito abundances and various climate factors for domain  6 (Prarie)
 
 # load/ install required libraries for prism data acquisition and clean up
 
@@ -41,14 +41,14 @@ site.df <- unique(select(ungroup(complete.df), c("Site", "Plot")))
 contig.df <- left_join(contigus.df, site.df , by="Plot")
 
 
-focal.df <- filter( contig.df, Site=="WOOD")
+focal.df <- filter( contig.df, Site=="UKFS")
 
 focal.df$fYear <- as.factor(focal.df$Year)
 
 ### Temperature
 gam.temp <- gamm4( Tmean7 ~ s(DOY,by=(fYear), bs="cc"),
-               random = ~ (1|Plot),
-               data=focal.df, family="gaussian")
+                   random = ~ (1|Plot),
+                   data=focal.df, family="gaussian")
 
 summary(gam1$gam)
 ## lets try and plot this with new data
@@ -60,7 +60,7 @@ plot.m <- c(levels(as.factor(focal.df$Plot)))
 dum.df <- expand.grid(DOY,fYear)
 
 colnames(dum.df) <- c("DOY", "fYear")
- 
+
 dum.df <- as.data.frame(dum.df)
 
 
@@ -85,8 +85,8 @@ temp.df$Metric <- "Temp"
 
 ### PPT
 gam.ppt <- gamm4( PPT14 ~ s(DOY,by=(fYear), bs="cc"),
-                   random = ~ (1|Plot),
-                   data=focal.df, family="gaussian")
+                  random = ~ (1|Plot),
+                  data=focal.df, family="gaussian")
 
 ## lets try and plot this with new data
 
@@ -122,8 +122,8 @@ ppt.df$Metric <- "PPT"
 
 ## photoperiod
 gam.photo <- gamm4( Photoperiod ~ s(DOY,by=(fYear), bs="cc"),
-                   random = ~ (1|Plot),
-                   data=focal.df, family="gaussian")
+                    random = ~ (1|Plot),
+                    data=focal.df, family="gaussian")
 
 ## lets try and plot this with new data
 
@@ -161,8 +161,8 @@ photo.df$Metric <- "Photo"
 
 ## photoperiod
 gam.gdd <- gamm4( CumGDD ~ s(DOY,by=(fYear), bs="cc"),
-                    random = ~ (1|Plot),
-                    data=focal.df, family="gaussian")
+                  random = ~ (1|Plot),
+                  data=focal.df, family="gaussian")
 
 ## lets try and plot this with new data
 
@@ -202,7 +202,7 @@ abio.df <- filter(abio.df, fYear != "2013")
 
 
 ggplot( abio.df, aes(x=DOY, y= Pred, color=fYear))+
-  geom_line(size=2, alpha=.75) + facet_wrap(~Metric)
+  geom_line(size=2, alpha=.75) + facet_wrap(~Metric, scales="free_y")
 
 #################### Combining data sets #############
 
@@ -220,8 +220,8 @@ dim(full.df) # 620662 X 30
 ggplot(full.df, aes(x= CumGDD, y= log10( (Count/TrapHours)+1 )))+ geom_point()
 ############ subsetting to the single species, site and year #########
 
-# We are only interested in Aedes vexans from WOOD site
-toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D09")
+# We are only interested in Aedes vexans from UNDE
+toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D06")
 
 unique(toy.df$Year)
 
@@ -244,7 +244,7 @@ library(lme4)
 library(gamm4)
 
 
-toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D09")
+toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D06")
 
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
@@ -256,7 +256,7 @@ gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours))
 summary(gam1$gam)
 ## lets try and plot this with new data
 
-DOY <- 77:300
+DOY <-51:330
 fYear <- c(levels(toy.df$fYear))
 plot.m <- c(levels(as.factor(toy.df$Site)))
 
@@ -280,18 +280,20 @@ dum.df$TrapHours <- 12
 dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
 
 
-dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
+#dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
+
+#$Pred[dum.df$DOY <150] <- -1000
 #dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
-dum.df %>% filter( Site =="WOOD") %>% 
-ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
-                    color=fYear))+ 
+dum.df %>% #filter( Site =="UNDE") %>% 
+  ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
+              color=fYear))+ 
   geom_point(data=toy.df, aes(y=Count/TrapHours,
                               x=DOY),
              color="black",size=2,alpha=.55)+
   geom_line(size=2,alpha=.75)+ theme_classic()+
   facet_wrap(~Site, scales="free_y")
 
-vexans.df <- dum.df %>% filter( Site =="WOOD") 
+vexans.df <- dum.df %>% filter( Site =="UKFS") 
 names(vexans.df)
 
 colnames(vexans.df)[7] <- "Count"
@@ -306,7 +308,7 @@ colnames(vexans.df)[7] <- "Count"
 library(lme4)
 library(gamm4)
 
-toy.df <- filter(full.df, SciName== "Coquillettidia perturbans" & Domain == "D09")
+toy.df <- filter(full.df, SciName== "Culex erraticus" & Domain == "D06")
 
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
@@ -317,8 +319,9 @@ gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours))
 
 summary(gam1$gam)
 ## lets try and plot this with new data
+# lets try and plot this with new data
 
-DOY <- 77:300
+DOY <-51:330
 fYear <- c(levels(toy.df$fYear))
 plot.m <- c(levels(as.factor(toy.df$Site)))
 
@@ -353,108 +356,37 @@ dum.df %>% #filter( Site =="WOOD") %>%
   geom_line(size=2,alpha=.75)+ theme_classic()+
   facet_wrap(~Site, scales="free_y")
 
-perturbans.df <- dum.df %>% filter( Site =="WOOD") 
-names(perturbans.df)
+erraticus.df <- dum.df %>% filter( Site =="UKFS") 
+names(erraticus.df)
 
-colnames(perturbans.df)[7] <- "Count"
+colnames(erraticus.df)[7] <- "Count"
 
 ## lets look atthe other two species starting with Coquillettidia
 
-
-## first lets try to fit a frequentist approach to verify that our bayesian
-## model is working ok
-library(lme4)
-library(gamm4)
-
-toy.df <- filter(full.df, SciName== "Culex tarsalis" & Domain == "D09")
-
-toy.df$fYear <- as.factor(toy.df$Year)
-toy.df$Site <- as.factor(toy.df$Site)
-
-
-gam1 <- gamm4( Count ~ s( scale(DOY),by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
-               data=toy.df, family="poisson")
-
-summary(gam1$gam)
-## lets try and plot this with new data
-
-DOY <- 77:300
-fYear <- c(levels(toy.df$fYear))
-plot.m <- c(levels(as.factor(toy.df$Site)))
-
-dum.df <- unique(select(toy.df, c("Plot","Site")))
-
-dum.df <- expand.grid(DOY,fYear)
-
-colnames(dum.df) <- c("DOY", "fYear")
-
-dum.df <- as.data.frame(dum.df)
-
-dum.df <- unique(select(toy.df, c("Site", "Plot")))
-
-dum.df <- tidyr::expand( dum.df, nesting(Plot,Site),DOY)
-
-dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
-
-#dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
-dum.df$TrapHours <- 12
-
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
-
-
-#dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
-#dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
-
-dum.df %>% filter( Site =="WOOD") %>% 
-  ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
-              color=fYear))+ 
-  geom_point(data= filter(toy.df, Site =="WOOD"), aes(y=Count/TrapHours,
-                              x=DOY,
-             color=fYear),size=2,alpha=.55)+
-  geom_line(size=2,alpha=.75)+ theme_classic()+
-  facet_wrap(~fYear, scales="free_y")
-
-
-tarsalis.df <- dum.df %>% filter( Site =="WOOD") 
-names(tarsalis.df)
-
-colnames(tarsalis.df)[7] <- "Count"
-
 ## combining all count data
 
-count.df <- rbind.data.frame(vexans.df,perturbans.df, tarsalis.df)
+count.df <- rbind.data.frame(vexans.df, erraticus.df)
 
 
 
-temp.df <- filter( temp.df, fYear != '2013' & fYear!="2015")
+temp.df <- filter( temp.df, fYear != '2013' & fYear!="2015" &fYear!="2014" )
 
-count.df <- count.df  %>%  group_by(fYear) %>% 
-  mutate( mCount = max(exp(Count)/TrapHours))
-
-
-temp.df <- temp.df  %>%  group_by(fYear) %>% 
-  mutate( mTemp = max(Pred))
-
-temp.df$maxTemp <- max(temp.df$Pred)
-count.df$maxCount <- max(exp(count.df$Count)/count.df$TrapHours)
-
-### All taxa D9 Temp
+### All taxa D5 Temp
 ggplot() +
   geom_ribbon(data=filter(temp.df, Pred >=10), aes(x=DOY,ymax=Inf, ymin=0),
               fill="grey", alpha=.35)+
   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
             size=2)+ xlab("Day of year") + 
   geom_line( data= temp.df, aes(x= DOY, y= Pred/1.5,color="#ffa600") ,size=2)+
-  facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
+  facet_wrap(~fYear, nrow = 3)  + xlim(51,330)+  theme_classic()+
   scale_y_continuous(sec.axis = sec_axis(~. *1.5,
-                                         name="Mean Temp (C)"), limits = c(0,20),
+                                         name="Mean Temp (C)"), limits = c(0,30),
                      name = "Mosquito density")+
   theme(
     legend.position = "top"
-  ) + scale_color_manual(values = c("#ffa600","#003f5c", "#7a5195", "#ef5675"),
-                         labels = c("Temp","A. vexans", "C. perturbans",
-                                    "C. tarsalis"), name="")+
+  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
+                         labels = c("Temp", "A. communis" ,"A. vexans", 
+                                    "C. perturbans"), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
@@ -477,16 +409,16 @@ ggplot() +
               fill="grey", alpha=.25)+
   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
             size=2)+
-  geom_line( data= ppt.df, aes(x= DOY, y= Pred/5,color="#ffa600") ,size=2)+
+  geom_line( data= ppt.df, aes(x= DOY, y= Pred/2,color="#ffa600") ,size=2)+
   facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
-  scale_y_continuous(sec.axis = sec_axis(~. *6,
-                                         name="Total Precip"), limits = c(0,20),
+  scale_y_continuous(sec.axis = sec_axis(~. *2,
+                                         name="Total Precip"),  limits = c(0,45),
                      name = "Mosquito density")+
   theme(
     legend.position = "top"
-  ) + scale_color_manual(values = c("#ffa600","#003f5c", "#7a5195", "#ef5675"),
-                         labels = c("Precip","A. vexans", "C. perturbans",
-                                    "C. tarsalis"), name="")+
+  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
+                         labels = c("Precip", "A. communis" ,"A. vexans", 
+                                    "C. perturbans"), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
@@ -499,6 +431,8 @@ ggplot() +
          axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
+
+
 
 
 
@@ -511,16 +445,16 @@ ggplot() +
               fill="grey", alpha=.25)+
   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
             size=2)+
-  geom_line( data= gdd.df, aes(x= DOY, y= Pred/100,color="#ffa600") ,size=2)+
+  geom_line( data= gdd.df, aes(x= DOY, y= Pred/25,color="#ffa600") ,size=2)+
   facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
-  scale_y_continuous(sec.axis = sec_axis(~. *100,
-                                         name="Cummulative GDD"), limits = c(0,20),
+  scale_y_continuous(sec.axis = sec_axis(~. *25,
+                                         name="Cummulative GDD"), limits = c(0,45),
                      name = "Mosquito density")+
   theme(
     legend.position = "top"
-  ) + scale_color_manual(values = c("#ffa600","#003f5c", "#7a5195", "#ef5675"),
-                         labels = c("GDD","A. vexans", "C. perturbans",
-                                    "C. tarsalis"), name="")+
+  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
+                         labels = c("Temp", "A. communis" ,"A. vexans", 
+                                    "C. perturbans"), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
@@ -533,6 +467,9 @@ ggplot() +
          axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
+
+
+
 
 
 

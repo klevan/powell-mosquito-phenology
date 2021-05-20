@@ -371,8 +371,7 @@ toy.df <- filter(full.df, SciName== "Culex tarsalis" & Domain == "D09")
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-
-gam1 <- gamm4( Count ~ s( scale(DOY),by=interaction(fYear,Site))+ offset(log(TrapHours)),
+gam1 <- gamm4( Count ~ s( (DOY),by=interaction(fYear,Site))+ offset(log(TrapHours)),
                random = ~ (1|Plot),
                data=toy.df, family="poisson")
 
@@ -405,7 +404,6 @@ dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
 
 #dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
 #dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
-
 dum.df %>% filter( Site =="WOOD") %>% 
   ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
               color=fYear))+ 
@@ -414,7 +412,6 @@ dum.df %>% filter( Site =="WOOD") %>%
              color=fYear),size=2,alpha=.55)+
   geom_line(size=2,alpha=.75)+ theme_classic()+
   facet_wrap(~fYear, scales="free_y")
-
 
 tarsalis.df <- dum.df %>% filter( Site =="WOOD") 
 names(tarsalis.df)
