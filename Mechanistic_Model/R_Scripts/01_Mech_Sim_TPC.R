@@ -96,7 +96,7 @@ dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),plot.m)
 
 dum.df$Pred <- predict(gam.temp$gam, newdata = dum.df)
 
-# Looking at predicted number
+# Looking at predicted temp data
 dum.df %>% filter( fYear != "2013") %>% 
   ggplot(  aes(x=DOY, y=(Pred)))+ 
   geom_point(data=focal.df, aes(x= DOY,y=Tmean7, color=fYear),size=2)+
@@ -127,17 +127,23 @@ pred.df$Juv <- NA
 pred.df$Adult <- NA
 
 # column to track changes in development rate
-pred.df$DevRate <-NA
+pred.df$DevRate <-NA ## tracking proportion of larvae the develop into adults
+                     ## per day, sensitive to the temperature
 
 ## Initial parameters
 
-pred.df$Juv[1] <- 1000 ## overwinter larval population
-pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
+pred.df$Juv[1] <- 1000 ## overwinter larval population, just throwing an initial
+                       ## starting value out (based on nothing)
+pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0, throwing an initial
+                      ## starting value out (based on nothing)
 
 
-fec <- 1.02 ## setting a fecudity rate of 3 eggs per day per female
+fec <- 1.02 ## setting a fecundity rate of 3 eggs per day per female
+            ## number of eggs laid per day,
 aMortal <- 0.25 ## setting mortality rate for adults
+                ## proportion of Adults that die per day (24 hr)
 lMortal <- .2 ## setting mortality rate for larvae
+              ## propotion of larvae that die per day (24 hr)
 
 
 ## Lets run the model

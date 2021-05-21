@@ -1,49 +1,47 @@
 ####### Powell Center: Phenological patterns of mosquitoes #######
 
 # Travis McDevitt-Galles
-# 05/21/2021
-# title: 02_Mech_Sim_Multi_lifestage
+#  05/21/2021
+# title: 03_Mech_Sim_dyanmic
 
-# The goal of the following script is to code thermal performance curves (TPC)
-# for the differnt mosquito thermal sensitve traits ( Development, morality,
-# and reproduction)
+# The following script is to use the model built in previous code
+# (01_Mech_Sim_TPC.R) and incorporate additional levels of temperature sensitive
+# parameters (mortality and fecudity)
 
 ## The TPC function comes from Childress and Letcher 2017 - Ecology
 ## Estimated parameters (Toptim and CTmax) estimated based on reported values
 ## from Mordecai et al. 2019
 
-#Set working directory
-#setwd("~/Desktop/Current_Projects/powell-mosquito-phenology")
 
-#setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
+#### Building a thermal performance curve for the different themeral sensitive
+#### Traits
 
-#### Building a thermal performance curve for mosquito deveopment rate
-
-Dev_TPC <- function( Temp, Toptim, CTmax, sigma){
+TPC <- function( Temp, Toptim, CTmax, sigma){
   
   perform <- rep(NA, length(Temp)) # Creating a vector of trait value based on
   # given temperature
   
   for( i in 1:length(Temp)){ # Looping through each temperature value
     if( Temp[i] <= Toptim){ # If temperature is less than or equal to Toptim
-      perform[i] <- exp(1)^( (Temp[i] - Toptim)/ (2 * (sigma^2))  ) 
+      perform[i] <- exp(1)^( (Temp[i] - Toptim)/ (2 *sigma)^2  ) 
     }else{ # if temperature is greater than the optim temp
       perform[i] <- 1 - ( (Temp[i] - Toptim) / (Toptim - CTmax) )^2
     }
   } 
   
+  perform[perform < 0] <- 0 
   return(perform)
   
 }
 
 ## testing the TPC function
-temp <- seq(-10, 20, length.out = 100) # initial temperature range
+temp <- seq(-5, 45, length.out = 100) # initial temperature range
 
-at1 <- Dev_TPC( Temp = temp, Toptim = 18, CTmax= 30, sigma = 1.5)
+at1 <- TPC( Temp = temp, Toptim = 25, CTmax= 40, sigma = 1.2)
 
 # plotting the thermal performance curve
 
-plot(x= temp, y= at1/3)
+plot(x= temp, y= at1)
 # doesn't look that good but we can carry on with it
 
 ### Extracting temp data from PRISM, use this for our seasonal model ###
@@ -79,7 +77,7 @@ gam.temp <- gamm4( Tmean7 ~ s(DOY,by=(fYear), bs="cc"),
                    random = ~ (1|Plot),
                    data=focal.df, family="gaussian")
 
-summary(gam1$gam)
+summary(gam.temp$gam)
 ## lets try and plot this with new data
 
 DOY <- 0:365
@@ -120,7 +118,7 @@ pred.df <- unique(pred.df %>% filter(fYear == "2017"))
 colnames(pred.df)[2] <- "Temp"
 
 # filtering to better start with when mosquitoes are present
-pred.df <- pred.df %>%  filter(DOY>=150)
+pred.df <- pred.df %>%  filter(DOY>=100)
 
 # adding columns to track JUV, and adults
 pred.df$Juv1 <- NA
@@ -128,10 +126,16 @@ pred.df$Juv2 <- NA
 pred.df$Juv3 <- NA
 pred.df$Adult <- NA
 
-# column to track changes in development rate
-pred.df$DevRate <-NA
+## Inital parameters
 
-## Initial parameters
+pred.df$DevRate <-NA ## tracking proportion of larvae the develop into adults
+                     ## per day, sensitive to the temperature
+pred.df$FecRate <- NA ## tracking the number of eggs laid per female adult mos
+                      ## per day, sensitive to the temperature
+pred.df$aMortRate <- NA ## tracking proportion adult mosquitoes that die per day
+                        ## per day, sensitive to the temperature
+pred.df$lMortRate <- NA ##  tracking proportion of larvae that die per day
+                        ## per day, sensitive to the temperature
 
 # Starting values
 pred.df$Juv1[1] <- 1000## overwinter larval population
@@ -158,11 +162,11 @@ for( i in 1:(nrow(pred.df)-1)){
   pred.df$Juv1[i+1] <- pred.df$Juv1[i]+ (pred.df$Adult[i] * fec) -
     pred.df$Juv1[i] * lMortal - 
     pred.df$Juv1[i] * (Dev_TPC( pred.df$Temp[i],  Toptim =20,
-                               CTmax= 25, sigma = 1.5)/2)
- 
+                                CTmax= 25, sigma = 1.5)/2)
+  
   pred.df$Juv2[i+1] <- pred.df$Juv2[i]+ (pred.df$Juv1[i] * 
                                            (Dev_TPC( pred.df$Temp[i],  Toptim =20,
-                                                                     
+                                                     
                                                      CTmax= 25, sigma = 1.5)/2)) -
     pred.df$Juv2[i] * lMortal - 
     pred.df$Juv2[i] * (Dev_TPC( pred.df$Temp[i],  Toptim =20,
@@ -178,7 +182,7 @@ for( i in 1:(nrow(pred.df)-1)){
   ## Adult dynamics
   pred.df$Adult[i+1] <- pred.df$Adult[i] - (pred.df$Adult[i] * aMortal) +
     pred.df$Juv3[i] *  (Dev_TPC( Temp = pred.df$Temp[i], Toptim = 20, 
-                                CTmax= 25, sigma = 1.5)/2)
+                                 CTmax= 25, sigma = 1.5)/2)
   # tracking the development rate across time
   pred.df$DevRate[i] <- Dev_TPC( pred.df$Temp[i],  Toptim = 20 ,
                                  CTmax=25, sigma = 1.5)
@@ -186,7 +190,7 @@ for( i in 1:(nrow(pred.df)-1)){
 
 pred.df %>% filter(DOY >= 150) %>% 
   ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
-                                            aes(color="black")) +
+                                              aes(color="black")) +
   geom_line(aes(x=DOY, y= (Juv1), color="blue"), size=2,alpha=.75) +
   geom_line(aes(x=DOY, y= (Juv2), color="green"), size=2,alpha=.75) +
   geom_line(aes(x=DOY, y= (Juv3), color="red"), size=2,alpha=.75) +
