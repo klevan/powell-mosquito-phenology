@@ -298,6 +298,14 @@ names(vexans.df)
 
 colnames(vexans.df)[7] <- "Count"
 
+vexans.df %>% #filter( Site =="UNDE") %>% 
+  ggplot( aes(x=DOY, y=exp(Count)/TrapHours,
+              color=fYear))+ 
+  geom_point(data=filter(toy.df, Site =="UKFS"), aes(y=Count/TrapHours,
+                              x=DOY),
+             color="black",size=2,alpha=.55)+
+  geom_line(size=2,alpha=.75)+ theme_classic()+
+  facet_wrap(~fYear, scales="free_y")
 
 
 ## lets look atthe other two species starting with Coquillettidia
@@ -384,13 +392,12 @@ ggplot() +
                      name = "Mosquito density")+
   theme(
     legend.position = "top"
-  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
-                         labels = c("Temp", "A. communis" ,"A. vexans", 
-                                    "C. perturbans"), name="")+
+  ) + scale_color_manual(values = c("#ffa600", "#003f5c", "#ef5675"),
+                         labels = c("Temp", "A. vexans", "C. erraticus" ), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
-         legend.position = c(.8,.15),
+         legend.position = "top",
          axis.line.x = element_line(color="black") ,
          axis.ticks.y = element_line(color="black"),
          axis.ticks.x = element_line(color="black"),
@@ -403,26 +410,23 @@ ggplot() +
 
 
 ### All taxa D9 precip
-ppt.df <- filter(ppt.df, fYear != '2013' & fYear!="2015")
+ppt.df <- filter(ppt.df, fYear != '2013' & fYear!="2015"& fYear!= '2014')
 ggplot() +
   geom_ribbon(data=filter(temp.df, Pred >=10), aes(x=DOY,ymax=Inf, ymin=0),
               fill="grey", alpha=.25)+
   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
             size=2)+
-  geom_line( data= ppt.df, aes(x= DOY, y= Pred/2,color="#ffa600") ,size=2)+
-  facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
-  scale_y_continuous(sec.axis = sec_axis(~. *2,
-                                         name="Total Precip"),  limits = c(0,45),
+  geom_line( data= ppt.df, aes(x= DOY, y= Pred/5,color="#ffa600") ,size=2)+
+  facet_wrap(~fYear, nrow = 3)  + xlim(51,330)+  theme_classic()+
+  scale_y_continuous(sec.axis = sec_axis(~. *5,
+                                         name="14 day total precip"),  limits = c(0,30),
                      name = "Mosquito density")+
-  theme(
-    legend.position = "top"
-  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
-                         labels = c("Precip", "A. communis" ,"A. vexans", 
-                                    "C. perturbans"), name="")+
+  scale_color_manual(values = c("#ffa600", "#003f5c", "#ef5675"),
+                       labels = c("Temp", "A. vexans", "C. erraticus" ), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
-         legend.position = c(.8,.15),
+         legend.position = "top",
          axis.line.x = element_line(color="black") ,
          axis.ticks.y = element_line(color="black"),
          axis.ticks.x = element_line(color="black"),
@@ -438,27 +442,24 @@ ggplot() +
 
 ### All taxa D9 GDD
 
-gdd.df <- filter(gdd.df, fYear != '2013' & fYear!="2015")
+gdd.df <- filter(gdd.df, fYear != '2013' & fYear!="2015"& fYear!="2014")
 
 ggplot() +
   geom_ribbon(data=filter(temp.df, Pred >=10), aes(x=DOY,ymax=Inf, ymin=0),
               fill="grey", alpha=.25)+
   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
             size=2)+
-  geom_line( data= gdd.df, aes(x= DOY, y= Pred/25,color="#ffa600") ,size=2)+
-  facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
-  scale_y_continuous(sec.axis = sec_axis(~. *25,
-                                         name="Cummulative GDD"), limits = c(0,45),
+  geom_line( data= gdd.df, aes(x= DOY, y= Pred/75,color="#ffa600") ,size=2)+
+  facet_wrap(~fYear, nrow = 3)+ xlim(51,330)+  theme_classic()+
+  scale_y_continuous(sec.axis = sec_axis(~. *75,
+                                         name="Cummulative GDD"), limits = c(0,30),
                      name = "Mosquito density")+
-  theme(
-    legend.position = "top"
-  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
-                         labels = c("Temp", "A. communis" ,"A. vexans", 
-                                    "C. perturbans"), name="")+
+  scale_color_manual(values = c("#ffa600", "#003f5c", "#ef5675"),
+                     labels = c("Temp", "A. vexans", "C. erraticus" ), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
-         legend.position = c(.8,.15),
+         legend.position = "top",
          axis.line.x = element_line(color="black") ,
          axis.ticks.y = element_line(color="black"),
          axis.ticks.x = element_line(color="black"),

@@ -472,7 +472,7 @@ ggplot() +
   geom_line( data= ppt.df, aes(x= DOY, y= Pred/2,color="#ffa600") ,size=2)+
   facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
   scale_y_continuous(sec.axis = sec_axis(~. *2,
-                                         name="Total Precip"),  limits = c(0,45),
+                                         name="14 day total precip."),  limits = c(0,45),
                      name = "Mosquito density")+
   theme(
     legend.position = "top"
@@ -496,7 +496,7 @@ ggplot() +
 
 
 
-### All taxa D9 GDD
+### All taxa D5 GDD
 
 gdd.df <- filter(gdd.df, fYear != '2013' & fYear!="2015")
 
@@ -513,7 +513,7 @@ ggplot() +
   theme(
     legend.position = "top"
   ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
-                         labels = c("Temp", "A. communis" ,"A. vexans", 
+                         labels = c("GDD", "A. communis" ,"A. vexans", 
                                     "C. perturbans"), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
