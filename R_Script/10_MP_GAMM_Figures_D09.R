@@ -477,7 +477,8 @@ ggplot() +
   geom_line( data= ppt.df, aes(x= DOY, y= Pred/5,color="#ffa600") ,size=2)+
   facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
   scale_y_continuous(sec.axis = sec_axis(~. *6,
-                                         name="Total Precip"), limits = c(0,20),
+                                         name="14 day total precip."),
+                     limits = c(0,20),
                      name = "Mosquito density")+
   theme(
     legend.position = "top"
