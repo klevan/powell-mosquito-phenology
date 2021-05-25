@@ -161,31 +161,147 @@ for( i in 1:(nrow(pred.df)-1)){
   ## Larval dynamics
   pred.df$Juv1[i+1] <- pred.df$Juv1[i]+ (pred.df$Adult[i] * fec) -
     pred.df$Juv1[i] * lMortal - 
-    pred.df$Juv1[i] * (Dev_TPC( pred.df$Temp[i],  Toptim =20,
+    pred.df$Juv1[i] * (TPC( pred.df$Temp[i],  Toptim =20,
                                 CTmax= 25, sigma = 1.5)/2)
   
   pred.df$Juv2[i+1] <- pred.df$Juv2[i]+ (pred.df$Juv1[i] * 
-                                           (Dev_TPC( pred.df$Temp[i],  Toptim =20,
+                                           (TPC( pred.df$Temp[i],  Toptim =20,
                                                      
                                                      CTmax= 25, sigma = 1.5)/2)) -
     pred.df$Juv2[i] * lMortal - 
-    pred.df$Juv2[i] * (Dev_TPC( pred.df$Temp[i],  Toptim =20,
+    pred.df$Juv2[i] * (TPC( pred.df$Temp[i],  Toptim =20,
                                 CTmax= 25, sigma = 1.5)/2)
   
   pred.df$Juv3[i+1] <- pred.df$Juv3[i]+ (pred.df$Juv2[i] * 
-                                           (Dev_TPC( pred.df$Temp[i],  Toptim =20,
+                                           (TPC( pred.df$Temp[i],  Toptim =20,
                                                      
                                                      CTmax= 25, sigma = 1.5)/2)) -
     pred.df$Juv3[i] * lMortal - 
-    pred.df$Juv3[i] * (Dev_TPC( pred.df$Temp[i],  Toptim =20,
+    pred.df$Juv3[i] * (TPC( pred.df$Temp[i],  Toptim =20,
                                 CTmax= 25, sigma = 1.5)/2)
   ## Adult dynamics
   pred.df$Adult[i+1] <- pred.df$Adult[i] - (pred.df$Adult[i] * aMortal) +
-    pred.df$Juv3[i] *  (Dev_TPC( Temp = pred.df$Temp[i], Toptim = 20, 
+    pred.df$Juv3[i] *  (TPC( Temp = pred.df$Temp[i], Toptim = 20, 
                                  CTmax= 25, sigma = 1.5)/2)
   # tracking the development rate across time
-  pred.df$DevRate[i] <- Dev_TPC( pred.df$Temp[i],  Toptim = 20 ,
+  pred.df$DevRate[i] <- TPC( pred.df$Temp[i],  Toptim = 20 ,
                                  CTmax=25, sigma = 1.5)
+}
+
+pred.df %>% filter(DOY >= 150) %>% 
+  ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
+                                              aes(color="black")) +
+  geom_line(aes(x=DOY, y= (Juv1), color="blue"), size=2,alpha=.75) +
+  geom_line(aes(x=DOY, y= (Juv2), color="green"), size=2,alpha=.75) +
+  geom_line(aes(x=DOY, y= (Juv3), color="red"), size=2,alpha=.75) +
+  ylab("Mosquito abundance") + theme_classic() +
+  scale_color_manual(name="Stage", values=c("black" = "#003f5c",
+                                            "blue"="#7a5195",
+                                            "green"= '#ef5675',
+                                            "red" = "#ffa600"),
+                     labels=c("Adult", "Early instar", "Late instar",
+                              "Pupa"))+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = c(.9,.9),
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
+
+pred.df %>% 
+  ggplot( aes( x=DOY, y=DevRate)) + geom_line(size=2, alpha=.85,
+                                              aes(color="black")) +
+  geom_line(aes(x=DOY, y= Temp/max(Temp), color="grey"), size=2,alpha=.75) +
+  scale_y_continuous( sec.axis = sec_axis(~. * max(pred.df$Temp),
+                                          name="Mean Temp (C)"),
+                      name="Relative Development Rate") + theme_classic()+
+  scale_color_manual(name="", values=c("black" = "black","grey"="grey"),
+                     labels=c("Devel. rate", "Temp."))+# selecting col. of interest
+  pred.df <- select(temp.df, c("DOY", "Pred", "fYear"))
+
+# filtering out so we just have one year of temp data
+pred.df <- unique(pred.df %>% filter(fYear == "2017"))
+
+# renaming column
+colnames(pred.df)[2] <- "Temp"
+
+# filtering to better start with when mosquitoes are present
+pred.df <- pred.df %>%  filter(DOY>=100)
+
+# adding columns to track JUV, and adults
+pred.df$Juv1 <- NA
+pred.df$Juv2 <- NA
+pred.df$Juv3 <- NA
+pred.df$Adult <- NA
+
+## Inital parameters
+
+pred.df$DevRate <-NA ## tracking proportion of larvae the develop into adults
+## per day, sensitive to the temperature
+pred.df$FecRate <- NA ## tracking the number of eggs laid per female adult mos
+## per day, sensitive to the temperature
+pred.df$aMortRate <- NA ## tracking proportion adult mosquitoes that die per day
+## per day, sensitive to the temperature
+pred.df$lMortRate <- NA ##  tracking proportion of larvae that die per day
+## per day, sensitive to the temperature
+
+# Starting values
+pred.df$Juv1[1] <- 1000## overwinter larval population
+pred.df$Juv2[1] <- 1000## overwinter larval population
+pred.df$Juv3[1] <- 1000 ## overwinter larval population
+pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
+
+## Fixed parameters
+
+fec <- 2.4 ## setting a fecundity rate of 3 eggs per day per female
+## number of eggs laid per day,
+aMortal <- 0.35 ## setting mortality rate for adults
+## proportion of Adults that die per day (24 hr)
+lMortal <- .3 ## setting mortality rate for larvae
+## proportion of larvae that die per day (24 hr)
+
+
+## Lets run the model
+
+## Lets run the model
+
+for( i in 1:(nrow(pred.df)-1)){
+  ## Larval dynamics
+  pred.df$Juv1[i+1] <- pred.df$Juv1[i]+ (pred.df$Adult[i] * fec) -
+    pred.df$Juv1[i] * lMortal - 
+    pred.df$Juv1[i] * (TPC( pred.df$Temp[i],  Toptim =20,
+                            CTmax= 25, sigma = 1.5)/2)
+  
+  pred.df$Juv2[i+1] <- pred.df$Juv2[i]+ (pred.df$Juv1[i] * 
+                                           (TPC( pred.df$Temp[i],  Toptim =20,
+                                                 
+                                                 CTmax= 25, sigma = 1.5)/2)) -
+    pred.df$Juv2[i] * lMortal - 
+    pred.df$Juv2[i] * (TPC( pred.df$Temp[i],  Toptim =20,
+                            CTmax= 25, sigma = 1.5)/2)
+  
+  pred.df$Juv3[i+1] <- pred.df$Juv3[i]+ (pred.df$Juv2[i] * 
+                                           (TPC( pred.df$Temp[i],  Toptim =20,
+                                                 
+                                                 CTmax= 25, sigma = 1.5)/2)) -
+    pred.df$Juv3[i] * lMortal - 
+    pred.df$Juv3[i] * (TPC( pred.df$Temp[i],  Toptim =20,
+                            CTmax= 25, sigma = 1.5)/2)
+  ## Adult dynamics
+  pred.df$Adult[i+1] <- pred.df$Adult[i] - (pred.df$Adult[i] * aMortal) +
+    pred.df$Juv3[i] *  (TPC( Temp = pred.df$Temp[i], Toptim = 20, 
+                             CTmax= 25, sigma = 1.5)/2)
+  # tracking the development rate across time
+  pred.df$DevRate[i] <- TPC( pred.df$Temp[i],  Toptim = 20 ,
+                             CTmax=25, sigma = 1.5)
 }
 
 pred.df %>% filter(DOY >= 150) %>% 
@@ -238,3 +354,187 @@ pred.df %>%
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
 
+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = c(.9,.9),
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
+## Modeling temporal dynamic mortality , developmental , and fecudity rates
+
+
+# selecting col. of interest
+pred.df <- select(temp.df, c("DOY", "Pred", "fYear"))
+
+# filtering out so we just have one year of temp data
+pred.df <- unique(pred.df %>% filter(fYear == "2017"))
+
+# renaming column
+colnames(pred.df)[2] <- "Temp"
+
+# filtering to better start with when mosquitoes are present
+pred.df <- pred.df %>%  filter(DOY>=200)
+
+# adding columns to track JUV, and adults
+pred.df$Juv1 <- NA
+pred.df$Juv2 <- NA
+pred.df$Juv3 <- NA
+pred.df$Adult <- NA
+
+## Inital parameters
+
+pred.df$DevRate <-NA ## tracking proportion of larvae the develop into adults
+## per day, sensitive to the temperature
+pred.df$FecRate <- NA ## tracking the number of eggs laid per female adult mos
+## per day, sensitive to the temperature
+pred.df$aMortRate <- NA ## tracking proportion adult mosquitoes that die per day
+## per day, sensitive to the temperature
+pred.df$lMortRate <- NA ##  tracking proportion of larvae that die per day
+## per day, sensitive to the temperature
+
+# Starting values
+pred.df$Juv1[1] <- 10## overwinter larval population
+pred.df$Juv2[1] <- 0## overwinter larval population
+pred.df$Juv3[1] <- 0 ## overwinter larval population
+pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
+
+## Fixed baseline parameters
+
+fec <- 4 ## setting a fecundity rate of 3 eggs per day per female
+## number of eggs laid per day,
+aMortal <- 0.7 ## setting mortality rate for adults
+## proportion of Adults that die per day (24 hr)
+lMortal <- .5 ## setting mortality rate for larvae
+## proportion of larvae that die per day (24 hr)
+
+# Specifying the TPC parameters for development, fecundity and mortality
+
+## Development: 
+
+dev_par <- c( 20,  # Toptim: temperature where trait value is maximized
+              25,  # CTmax: critical threshold for temperature
+              1) # sigma: parameter that shapes slope as temp approaches Toptim
+
+fec_par <- c( 15,  # Toptim: temperature where trait value is maximized
+              18,  # CTmax: critical threshold for temperature
+              .75) # sigma: parameter that shapes slope as temp approaches Toptim
+
+aMort_par <- c( 20,# Toptim: temperature where trait value is maximized
+              30,  # CTmax: critical threshold for temperature
+              .95) # sigma: parameter that shapes slope as temp approaches Toptim
+
+lMort_par <- c( 20,# Toptim: temperature where trait value is maximized
+              30,  # CTmax: critical threshold for temperature
+              2.5) # sigma: parameter that shapes slope as temp approaches Toptim
+
+
+## Lets run the model
+
+for( i in 1:(nrow(pred.df)-1)){
+  ## temperature sensitive parameters
+  # tracking the development rate across time
+  pred.df$DevRate[i] <- TPC( pred.df$Temp[i],
+                             Toptim = dev_par[1],
+                             CTmax= dev_par[2],
+                             sigma = dev_par[3])
+  
+  pred.df$FecRate[i] <- TPC( pred.df$Temp[i],
+                             Toptim = fec_par[1],
+                             CTmax= fec_par[2],
+                             sigma = fec_par[3])
+  
+  pred.df$aMortRate[i] <- 1- TPC( pred.df$Temp[i],
+                             Toptim = aMort_par[1],
+                             CTmax= aMort_par[2],
+                             sigma = aMort_par[3])
+  
+  
+  pred.df$lMortRate[i] <- 1- TPC( pred.df$Temp[i],
+                             Toptim = lMort_par[1],
+                             CTmax= lMort_par[2],
+                             sigma = lMort_par[3])
+  
+  
+  ## Discrete step model
+  
+  ## Larval dynamics
+  pred.df$Juv1[i+1] <- pred.df$Juv1[i]+ (pred.df$Adult[i] * 
+                                        ( fec* pred.df$FecRate[i]) ) -
+                       pred.df$Juv1[i] * (lMortal * pred.df$lMortRate[i] ) - 
+                       pred.df$Juv1[i] * ( pred.df$DevRate[i]/2)
+  
+  pred.df$Juv2[i+1] <- pred.df$Juv2[i]+ pred.df$Juv1[i] * 
+                                        (pred.df$DevRate[i]/2) -
+                       pred.df$Juv2[i] *  (lMortal * pred.df$lMortRate[i] ) - 
+                       pred.df$Juv2[i] * ( pred.df$DevRate[i]/2)
+    
+  pred.df$Juv3[i+1] <- pred.df$Juv3[i]+ pred.df$Juv2[i] * 
+                                           (pred.df$DevRate[i]/2) -
+                       pred.df$Juv3[i] * (lMortal * pred.df$lMortRate[i] ) - 
+                       pred.df$Juv3[i] * ( pred.df$DevRate[i]/2)
+  ## Adult dynamics
+  pred.df$Adult[i+1] <- pred.df$Adult[i] - pred.df$Adult[i] *
+                                           (aMortal * pred.df$aMortRate[i]) +
+                        pred.df$Juv3[i] *  ( pred.df$DevRate[i]/2)
+  }
+  
+
+pred.df %>% filter(DOY >= 200) %>% 
+    ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
+                                                aes(color="black")) +
+    geom_line(aes(x=DOY, y= (Juv1), color="blue"), size=2,alpha=.75) +
+    geom_line(aes(x=DOY, y= (Juv2), color="green"), size=2,alpha=.75) +
+    geom_line(aes(x=DOY, y= (Juv3), color="red"), size=2,alpha=.75) +
+    ylab("Mosquito abundance") + theme_classic() +
+    scale_color_manual(name="Stage", values=c("black" = "#003f5c",
+                                              "blue"="#7a5195",
+                                              "green"= '#ef5675',
+                                              "red" = "#ffa600"),
+                       labels=c("Adult", "Early instar", "Late instar",
+                                "Pupa"))+
+    theme( legend.key.size = unit(.5, "cm"),
+           legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+           legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+           legend.position = c(.9,.9),
+           axis.line.x = element_line(color="black") ,
+           axis.ticks.y = element_line(color="black"),
+           axis.ticks.x = element_line(color="black"),
+           axis.title.x = element_text(size = rel(1.8)),
+           axis.text.x  = element_text(vjust=0.5, color = "black"),
+           axis.text.y  = element_text(vjust=0.5,color = "black"),
+           axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+           strip.text.x = element_text(size=20) )
+  
+  
+pred.df %>% 
+    ggplot( aes( x=DOY, y=DevRate)) + geom_line(size=2, alpha=.85,
+                                                aes(color="black")) +
+    geom_line(aes(x=DOY, y= Temp/max(Temp), color="grey"), size=2,alpha=.75) +
+    scale_y_continuous( sec.axis = sec_axis(~. * max(pred.df$Temp),
+                                            name="Mean Temp (C)"),
+                        name="Relative Development Rate") + theme_classic()+
+    scale_color_manual(name="", values=c("black" = "black","grey"="grey"),
+                       labels=c("Devel. rate", "Temp."))+
+    theme( legend.key.size = unit(.5, "cm"),
+           legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+           legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+           legend.position = c(.9,.9),
+           axis.line.x = element_line(color="black") ,
+           axis.ticks.y = element_line(color="black"),
+           axis.ticks.x = element_line(color="black"),
+           axis.title.x = element_text(size = rel(1.8)),
+           axis.text.x  = element_text(vjust=0.5, color = "black"),
+           axis.text.y  = element_text(vjust=0.5,color = "black"),
+           axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+           strip.text.x = element_text(size=20) )
+  
+  
