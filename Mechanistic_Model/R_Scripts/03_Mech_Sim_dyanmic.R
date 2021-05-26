@@ -409,20 +409,20 @@ pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
 
 ## Fixed baseline parameters
 
-fec <- 4 ## setting a fecundity rate of 3 eggs per day per female
+fec <- 12 ## setting a fecundity rate of 3 eggs per day per female
 ## number of eggs laid per day,
 aMortal <- 0.7 ## setting mortality rate for adults
 ## proportion of Adults that die per day (24 hr)
-lMortal <- .5 ## setting mortality rate for larvae
+lMortal <- .8 ## setting mortality rate for larvae
 ## proportion of larvae that die per day (24 hr)
 
 # Specifying the TPC parameters for development, fecundity and mortality
 
 ## Development: 
 
-dev_par <- c( 20,  # Toptim: temperature where trait value is maximized
-              25,  # CTmax: critical threshold for temperature
-              1) # sigma: parameter that shapes slope as temp approaches Toptim
+dev_par <- c( 15,  # Toptim: temperature where trait value is maximized
+              22,  # CTmax: critical threshold for temperature
+              .75) # sigma: parameter that shapes slope as temp approaches Toptim
 
 fec_par <- c( 15,  # Toptim: temperature where trait value is maximized
               18,  # CTmax: critical threshold for temperature
@@ -452,13 +452,13 @@ for( i in 1:(nrow(pred.df)-1)){
                              CTmax= fec_par[2],
                              sigma = fec_par[3])
   
-  pred.df$aMortRate[i] <- 1- TPC( pred.df$Temp[i],
+  pred.df$aMortRate[i] <- 1 - TPC( pred.df$Temp[i],
                              Toptim = aMort_par[1],
                              CTmax= aMort_par[2],
                              sigma = aMort_par[3])
   
   
-  pred.df$lMortRate[i] <- 1- TPC( pred.df$Temp[i],
+  pred.df$lMortRate[i] <- 1 - TPC( pred.df$Temp[i],
                              Toptim = lMort_par[1],
                              CTmax= lMort_par[2],
                              sigma = lMort_par[3])
@@ -487,6 +487,29 @@ for( i in 1:(nrow(pred.df)-1)){
                         pred.df$Juv3[i] *  ( pred.df$DevRate[i]/2)
   }
   
+
+#### Just adults
+
+
+pred.df %>% filter(DOY >= 200) %>% 
+  ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
+                                              color="black") +
+  ylim(0,30)+
+  ylab("Mosquito abundance") + theme_classic() +
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = c(.9,.9),
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black"),
+         axis.text.y  = element_text(vjust=0.5,color = "black"),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
 
 pred.df %>% filter(DOY >= 200) %>% 
     ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
@@ -518,7 +541,7 @@ pred.df %>% filter(DOY >= 200) %>%
 pred.df %>% 
     ggplot( aes( x=DOY, y=DevRate)) + geom_line(size=2, alpha=.85,
                                                 aes(color="black")) +
-    geom_line(aes(x=DOY, y= Temp/max(Temp), color="grey"), size=2,alpha=.75) +
+    geom_line(aes(x=DOY, y= FecRate, color="grey"), size=2,alpha=.75) +
     scale_y_continuous( sec.axis = sec_axis(~. * max(pred.df$Temp),
                                             name="Mean Temp (C)"),
                         name="Relative Development Rate") + theme_classic()+
