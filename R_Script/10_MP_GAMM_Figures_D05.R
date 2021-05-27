@@ -646,7 +646,7 @@ ggplot() +
   scale_y_continuous(sec.axis = sec_axis(~. *2,
                                          name="14 day total precip."),  limits = c(0,45),
                      name = "Mosquito density") +
-  scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
+  scale_color_manual(values = c("#009fe8", "#ff7298","#48da71", "#ffd200"),
                      labels = c("Precip", "A. communis" ,"A. vexans", 
                                 "C. perturbans"), name="")+
   theme( legend.key.size = unit(1.5, "cm"),
