@@ -120,13 +120,14 @@ grant.df %>%  filter(nTotal >0 ) %>%
   
 
 grant.df %>%  filter(nTotal >0 ) %>% 
+  filter(Domain=="D05" | Domain== "D08" | Domain == "D09" | Domain =="D06") %>% 
   ggplot(aes(y = log10(nTotal), x=Year, fill=SciName)) +geom_boxplot(alpha=.5)+
   facet_wrap(~Domain, scales="free") + theme_classic()+
   xlab("Year") +ylab("log10(Mosquito densities)")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
-         legend.position =c(.91,.1),
+         legend.position ="top",
          axis.line.x = element_line(color="black") ,
          axis.ticks.y = element_line(color="black"),
          axis.ticks.x = element_line(color="black"),
