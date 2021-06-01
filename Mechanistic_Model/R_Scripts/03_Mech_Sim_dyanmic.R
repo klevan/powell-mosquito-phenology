@@ -424,9 +424,9 @@ dev_par <- c( 15,  # Toptim: temperature where trait value is maximized
               22,  # CTmax: critical threshold for temperature
               .75) # sigma: parameter that shapes slope as temp approaches Toptim
 
-fec_par <- c( 15,  # Toptim: temperature where trait value is maximized
-              18,  # CTmax: critical threshold for temperature
-              .75) # sigma: parameter that shapes slope as temp approaches Toptim
+fec_par <- c( 37,  # Toptim: temperature where trait value is maximized
+              39,  # CTmax: critical threshold for temperature
+             2) # sigma: parameter that shapes slope as temp approaches Toptim
 
 aMort_par <- c( 20,# Toptim: temperature where trait value is maximized
               30,  # CTmax: critical threshold for temperature
@@ -494,7 +494,7 @@ for( i in 1:(nrow(pred.df)-1)){
 pred.df %>% filter(DOY >= 200) %>% 
   ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
                                               color="black") +
-  ylim(0,30)+
+  #ylim(0,30)+
   ylab("Mosquito abundance") + theme_classic() +
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
@@ -561,7 +561,28 @@ pred.df %>%
            strip.text.x = element_text(size=20) )
   
   
-### Attempts to make a unimodal adult distribtuion
+
+
+
+### building a for loop to explore how parameters shape the modality
+
+# building a dataset to track parameter values with modality outcome
+
+tOptim_Range <- seq(15,40, length.out = 100)
+sig_Range <- seq(.5,5,length.out = 100)
+
+par.df <- as.data.frame(expand.grid(tOptim_Range ,sig_Range))
+
+colnames(par.df) <- c("tOptim", 'Sigma')
+
+par.df$Ctmax <- par.df$tOptim+2
+
+par.df$Modal <- NA
+
+par.df$Degree <- NA
+
+
+for(r in 1:nrow(par.df)){
 # selecting col. of interest
 pred.df <- select(temp.df, c("DOY", "Pred", "fYear"))
 
@@ -614,10 +635,6 @@ dev_par <- c( 15,  # Toptim: temperature where trait value is maximized
               22,  # CTmax: critical threshold for temperature
               .75) # sigma: parameter that shapes slope as temp approaches Toptim
 
-fec_par <- c( 15,  # Toptim: temperature where trait value is maximized
-              22,  # CTmax: critical threshold for temperature
-              .75) # sigma: parameter that shapes slope as temp approaches Toptim
-
 aMort_par <- c( 25,# Toptim: temperature where trait value is maximized
                 40,  # CTmax: critical threshold for temperature
                 .95) # sigma: parameter that shapes slope as temp approaches Toptim
@@ -638,9 +655,9 @@ for( i in 1:(nrow(pred.df)-1)){
                              sigma = dev_par[3])
   
   pred.df$FecRate[i] <- TPC( pred.df$Temp[i],
-                             Toptim = fec_par[1],
-                             CTmax= fec_par[2],
-                             sigma = fec_par[3])
+                             Toptim = par.df$tOptim[r],
+                             CTmax= par.df$Ctmax[r],
+                             sigma = par.df$Sigma[r])
   
   pred.df$aMortRate[i] <- 1 - TPC( pred.df$Temp[i],
                                    Toptim = aMort_par[1],
@@ -675,13 +692,43 @@ for( i in 1:(nrow(pred.df)-1)){
   pred.df$Adult[i+1] <- pred.df$Adult[i] - pred.df$Adult[i] *
     (aMortal * pred.df$aMortRate[i]) +
     pred.df$Juv3[i] *  ( pred.df$DevRate[i]/2)
+
 }
 
 
+### sumarizing simulated data
+test.df <- pred.df
+test.df$rDirct <- NA
+test.df$Delt <- NA
+
+for( t in 2:nrow(test.df)){
+  if( test.df$Adult[t] >= test.df$Adult[t-1]){
+    test.df$rDirct[t] <- 1
+  }else(
+    test.df$rDirct[t] <- -1 
+  )
+  if( t > 2){
+    test.df$Delt[t] <- test.df$rDirct[t]+ test.df$rDirct[t-1]
+  }
+}
 
 
-pred.df %>% filter(DOY >= 200) %>% 
-  ggplot( aes( x=DOY, y=log10(Adult+1))) + geom_line(size=2, alpha=.85,
+sum.df <- filter(test.df, Delt == 0)
+if( nrow(sum.df) == 1){
+  par.df$Modal[r] <- 1 
+}else( par.df$Modal[r] <- 2)
+par.df$Degree[r]<- (sum.df$Adult[1] - sum.df$Adult[2] ) / sum.df$Adult[1]
+
+
+}
+
+par.df$Degree[par.df$Modal==1] <- 0
+ggplot(par.df, aes(x=tOptim, y= Sigma))+ geom_raster(aes(fill=Degree)) + theme_classic()
+
+ggplot(par.df, aes(x=tOptim, y= Sigma))+ geom_raster(aes(fill=)) + theme_classic()
+
+pred.df %>% filter(DOY >= 200& DOY <=220) %>% 
+  ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
                                               color="black") +
   #ylim(0,30)+
   ylab("Mosquito abundance") + theme_classic() +
