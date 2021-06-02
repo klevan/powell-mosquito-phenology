@@ -633,7 +633,7 @@ ggplot() +
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
 
-
+#ggsave( "D5_comm_temp.png", width=10 , height=10 , units="in")
 ## Precipitation 
 ggplot() +
   geom_tile(data=tile.df, aes(x= DOY,y=fY,fill= Pred),
@@ -661,7 +661,7 @@ ggplot() +
          axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
-
+#ggsave( "D5_comm_ppt.png", width=10 , height=10 , units="in")
 
 ### All taxa D5 GDD
 
