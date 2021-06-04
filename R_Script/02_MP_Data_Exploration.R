@@ -61,7 +61,49 @@ complete.df %>% group_by(Domain,Year, DOY,SciName) %>%
   xlab("Number of sampling events per plot") + theme(legend.position = c(.8,.7))
 
 
+complete.df %>% group_by(Domain,Plot,Year,SciName) %>%
+  summarise(nDates= length(unique(DOY)),
+            nPlots = length(unique( Plot ))) %>% 
+  ggplot(aes(x=nDates, fill = Domain))+geom_histogram(binwidth=1) +theme_classic()+
 
+  xlab("Number of sampling events per plot") +
+  facet_wrap(~Year, scales="free")+ylab("Count")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black", size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black", size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
+
+complete.df %>% group_by(Domain,Plot,Year) %>%
+  summarise(nDates= length(unique(DOY)),
+            nPlots = length(unique( Plot ))) %>% 
+  ggplot(aes(x=nDates, fill = Domain))+geom_histogram(binwidth=1) +theme_classic()+
+  
+  xlab("Number of sampling events per plot") +
+  facet_wrap(~Year, scales="free")+ylab("Count")+
+  theme( legend.key.size = unit(.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black", size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black", size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+ggsave( "Hist_sampling.png", width=15 , height=10 , units="in")
 
 ## Lets select taxa that we said we would model 
 
@@ -96,13 +138,13 @@ grant.df <- grant.df %>%
   mutate( nTotal = sum(Count)) %>% ungroup()
 
 
-grant.df %>%  filter(nTotal >0 ) %>% 
-  ggplot(aes(x = log10(nTotal), fill=Domain)) +geom_density(alpha=.5)+
+grant.df %>% #filter(nTotal >0 ) %>% 
+  ggplot(aes(x = log10( (Count/TrapHours)+1 ), fill=Domain)) +geom_density(alpha=.5)+
   facet_wrap(~SciName, scales="free") 
 
 
 grant.df %>%  filter(nTotal >0 ) %>% 
-  ggplot(aes(y = log10(nTotal), fill=Year, x=Domain)) +geom_boxplot(alpha=.5)+
+  ggplot(aes(y = log10( (Count/TrapHours)+1 ), fill=Year, x=Domain)) +geom_boxplot(alpha=.5)+
   facet_wrap(~SciName, scales="free") + theme_classic()+ 
   xlab("Domains") +ylab("log10(Mosquito densities)")+
   theme( legend.key.size = unit(.5, "cm"),
