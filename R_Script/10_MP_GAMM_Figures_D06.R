@@ -249,8 +249,8 @@ toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D06")
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
+gam1 <- gam( Count ~ te(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
+               #random = ~ (1|Plot),
                data=toy.df, family="poisson")
 
 summary(gam1$gam)
@@ -277,22 +277,38 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
 dum.df$TrapHours <- 12
 
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 
 #dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
 
 #$Pred[dum.df$DOY <150] <- -1000
 #dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
+colnames(dum.df)[5] <- "Year"
 dum.df %>% #filter( Site =="UNDE") %>% 
   ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
-              color=fYear))+ 
+              color=Year))+ 
   geom_point(data=toy.df, aes(y=Count/TrapHours,
-                              x=DOY),
-             color="black",size=2,alpha=.55)+
+                              x=DOY, color=as.factor(Year)),
+           size=2,alpha=.55)+
   geom_line(size=2,alpha=.75)+ theme_classic()+
-  facet_wrap(~Site, scales="free_y")
+  ylab("Mosquito densitiy")+
+  facet_wrap(~Site, scales="free_y", nrow=3)+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "top",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
+
+#ggsave( "D6_Site_vex.png", width=9 , height=8 , units="in")
 vexans.df <- dum.df %>% filter( Site =="UKFS") 
 names(vexans.df)
 
@@ -300,14 +316,29 @@ colnames(vexans.df)[7] <- "Count"
 
 vexans.df %>% #filter( Site =="UNDE") %>% 
   ggplot( aes(x=DOY, y=exp(Count)/TrapHours,
-              color=fYear))+ 
+              color=SciName))+ 
   geom_point(data=filter(toy.df, Site =="UKFS"), aes(y=Count/TrapHours,
                               x=DOY),
-             color="black",size=2,alpha=.55)+
+             size=2,alpha=.55)+
+  scale_color_manual(values = ("#003f5c"),
+                     labels = ("A. vexans" ), name="")+
+  xlab("Day of Year")+ ylab("Mosquito densities")+
   geom_line(size=2,alpha=.75)+ theme_classic()+
-  facet_wrap(~fYear, scales="free_y")
+  facet_wrap(~Year, scales="free_y", nrow=1)+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
 
-
+#ggsave( "D6_vexans.png", width=15 , height=5.95 , units="in")
 ## lets look atthe other two species starting with Coquillettidia
 
 
@@ -321,8 +352,8 @@ toy.df <- filter(full.df, SciName== "Culex erraticus" & Domain == "D06")
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
+gam1 <- gam( Count ~ te(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
+           #    random = ~ (1|Plot),
                data=toy.df, family="poisson")
 
 summary(gam1$gam)
@@ -350,7 +381,7 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
 dum.df$TrapHours <- 12
 
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 
 #dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
@@ -366,7 +397,7 @@ dum.df %>% #filter( Site =="WOOD") %>%
 
 erraticus.df <- dum.df %>% filter( Site =="UKFS") 
 names(erraticus.df)
-
+colnames(erraticus.df)[5] <- "Year"
 colnames(erraticus.df)[7] <- "Count"
 
 ## lets look atthe other two species starting with Coquillettidia
@@ -374,6 +405,38 @@ colnames(erraticus.df)[7] <- "Count"
 ## combining all count data
 
 count.df <- rbind.data.frame(vexans.df, erraticus.df)
+
+
+toy.df <- filter(full.df, Site == "UKFS")
+
+toy.df <- filter(toy.df, SciName== "Culex erraticus" |
+                   SciName== "Aedes vexans" )
+
+
+count.df %>% #filter( Site =="UNDE") %>% 
+  ggplot( aes(x=DOY, y=exp(Count)/TrapHours,
+              color=SciName))+ 
+  geom_point(data=filter(toy.df, Site =="UKFS"), aes(y=Count/TrapHours,
+                                                     x=DOY, color=SciName),
+           size=2,alpha=.55)+
+  scale_color_manual(values = c("#003f5c", "#ef5675"),
+                     labels = c("A. vexans","C. erraticus" ), name="Mosquito sp.")+
+  xlab("Day of Year")+ ylab("Mosquito densities")+
+  geom_line(size=2,alpha=.75)+ theme_classic()+
+  facet_wrap(~Year, scales="free_y", nrow=1)+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "top",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+#ggsave( "D6_comm.png", width=15 , height=5 , units="in")
 
 
 
