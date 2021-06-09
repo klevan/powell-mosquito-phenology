@@ -249,8 +249,8 @@ toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D09")
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
+gam1 <- gam( Count ~ te(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
+               #random = ~ (1|Plot),
                data=toy.df, family="poisson")
 
 summary(gam1$gam)
@@ -277,12 +277,12 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
 dum.df$TrapHours <- 12
 
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 
 dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
 #dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
-dum.df %>% filter( Site =="WOOD") %>% 
+dum.df %>% #filter( Site =="WOOD") %>% 
 ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
                     color=fYear))+ 
   geom_point(data=toy.df, aes(y=Count/TrapHours,
@@ -298,6 +298,32 @@ colnames(vexans.df)[7] <- "Count"
 
 
 
+vexans.df %>% #filter( Site =="UNDE") %>% 
+  ggplot( aes(x=DOY, y=exp(Count)/TrapHours,
+              color=SciName))+ 
+  geom_point(data=filter(toy.df, Site =="WOOD"), aes(y=Count/TrapHours,
+                                                     x=DOY),
+             size=2,alpha=.25)+
+  scale_color_manual(values = ("#003f5c"),
+                     labels = ("A. vexans" ), name="")+
+  xlab("Day of Year")+ ylab("Mosquito densities")+
+  geom_line(size=2,alpha=.95)+ theme_classic()+
+  facet_wrap(~fYear, scales="free_y", nrow=1)+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "none",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+ggsave( "D9_vexans.png", width=15 , height=5 , units="in")
+
 ## lets look atthe other two species starting with Coquillettidia
 
 
@@ -311,8 +337,8 @@ toy.df <- filter(full.df, SciName== "Coquillettidia perturbans" & Domain == "D09
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
+gam1 <- gam( Count ~ te(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
+            #   random = ~ (1|Plot),
                data=toy.df, family="poisson")
 
 summary(gam1$gam)
@@ -339,7 +365,7 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
 dum.df$TrapHours <- 12
 
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 
 #dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
@@ -371,8 +397,8 @@ toy.df <- filter(full.df, SciName== "Culex tarsalis" & Domain == "D09")
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-gam1 <- gamm4( Count ~ s( (DOY),by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
+gam1 <- gam( Count ~ te( (DOY),by=interaction(fYear,Site))+ offset(log(TrapHours)),
+           #    random = ~ (1|Plot),
                data=toy.df, family="poisson")
 
 summary(gam1$gam)
@@ -399,7 +425,7 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
 dum.df$TrapHours <- 12
 
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 
 #dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
@@ -421,6 +447,50 @@ colnames(tarsalis.df)[7] <- "Count"
 ## combining all count data
 
 count.df <- rbind.data.frame(vexans.df,perturbans.df, tarsalis.df)
+
+
+toy.df <- filter(full.df,Site == "WOOD")
+
+toy.df <- filter( toy.df, SciName== "Aedes vexans" |
+                    SciName== "Culex tarsalis" |
+                    SciName== "Coquillettidia perturbans" )
+toy.df$fYear <- as.factor(toy.df$Year)
+count.df %>% #filter( Site =="UNDE") %>% 
+  ggplot( aes(x=DOY, y=exp(Count)/TrapHours,
+              color=SciName))+ 
+  geom_point(data=toy.df, aes(y=Count/TrapHours,
+                                                     x=DOY, color=SciName),
+             size=2,alpha=.25)+
+   scale_color_manual(values = c("#003f5c", "#7a5195", "#ef5675"),
+                       labels = c("A. vexans", "C. perturbans",
+                                  "C. tarsalis"), name="Mosquito sp.") +
+  xlab("Day of Year")+ ylab("Mosquito densities")+
+  geom_line(size=2,alpha=.95)+ theme_classic()+
+  facet_wrap(~fYear, scales="free_y", nrow=1)+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "top",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
+ggsave( "D9_comm.png", width=15 , height=5.95 , units="in")
+
+
+
+
+
+
+
+
+
 
 
 
@@ -476,7 +546,7 @@ ggplot() +
             size=2)+
   geom_line( data= ppt.df, aes(x= DOY, y= Pred/5,color="#ffa600") ,size=2)+
   facet_wrap(~fYear, nrow = 3)  + xlim(100,300)+  theme_classic()+
-  scale_y_continuous(sec.axis = sec_axis(~. *6,
+  scale_y_continuous(sec.axis = sec_axis(~. *5,
                                          name="14 day total precip."),
                      limits = c(0,20),
                      name = "Mosquito density")+
@@ -534,32 +604,180 @@ ggplot() +
 
 
 
-# 
-# 
-# 
-# gdd.df <- filter(gdd.df, fYear != '2013' & fYear!="2015")
-# ggplot() +
-#   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours)/maxCount ),
-#             size=2, color="#003f5c")+
-#   geom_line( data= gdd.df, aes(x= DOY, y= Pred/max(Pred)) ,color="#ffa600",size=2)+
-#   facet_wrap(~fYear)
-# 
-# ggplot() +
-#   geom_line(data= filter(count.df, SciName=="Aedes vexans"), aes(x = DOY , y=(exp(Count)/TrapHours)/maxCount ), 
-#             size=2, color="#003f5c")+
-#   geom_line( data= temp.df, aes(x= DOY, y= Pred/maxTemp) ,color="#ffa600",size=2)+
-#   facet_wrap(~fYear) + xlim(100,300)
-# 
-# 
-# ggplot() +
-#   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) ), size=2, color="Navy")+
-#   geom_line( data= photo.df, aes(x= DOY, y= Pred/2) ,color="Green",size=2)+
-#   facet_wrap(~fYear)
-# 
-# 
-# gdd.df <- filter(gdd.df, fYear != '2013' & fYear!="2015")
-# ggplot() +
-#   geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours)/maxCount ),
-#             size=2, color="#003f5c")+
-#   geom_line( data= gdd.df, aes(x= DOY, y= Pred/max(Pred)) ,color="#ffa600",size=2)+
-#   facet_wrap(~fYear)
+
+### ggplots with color tiled background
+
+## Might have to do this the brute force way
+
+rec.df <- temp.df %>% filter(Pred >=  10) 
+
+join.df <- select(rec.df, c("DOY", "Pred", "fYear"))
+
+join.df %>%  group_by(fYear) %>% 
+  summarize(minDOY = min(DOY),
+            maxDOY = max(DOY))
+
+# 2014: DOY 131:289
+# 2016: DOY 136:273
+# 2017: DOY 130:275
+# 2018: DOY 127:270
+# 2019: DOY 128:280
+
+# 2014
+DOY <- 131:289
+fakeY <- 0:20
+
+t2014.df <- as.data.frame(expand.grid(DOY,fakeY))
+
+colnames(t2014.df) <- c("DOY", "fY")
+
+t2014.df$fYear <- "2014"
+
+# 2016
+DOY <- 136:273
+fakeY <- 0:20
+
+t2016.df <- as.data.frame(expand.grid(DOY,fakeY))
+
+colnames(t2016.df) <- c("DOY", "fY")
+
+t2016.df$fYear <- "2016"
+
+# 2017
+DOY <-130:275
+fakeY <- 0:20
+
+t2017.df <- as.data.frame(expand.grid(DOY,fakeY))
+
+colnames(t2017.df) <- c("DOY", "fY")
+
+t2017.df$fYear <- "2017"
+
+# 2018
+DOY <- 127:270
+fakeY <- 0:20
+
+t2018.df <- as.data.frame(expand.grid(DOY,fakeY))
+
+colnames(t2018.df) <- c("DOY", "fY")
+
+t2018.df$fYear <- "2018"
+
+# 2019
+DOY <- 128:280
+fakeY <- 0:20
+
+t2019.df <- as.data.frame(expand.grid(DOY,fakeY))
+
+colnames(t2019.df) <- c("DOY", "fY")
+
+t2019.df$fYear <- "2019"
+
+## combining all datasets
+
+tile.df <- rbind.data.frame(t2014.df,t2016.df,t2017.df,t2018.df,t2019.df)
+
+
+
+tile.df <- left_join(tile.df, join.df, by= c("DOY","fYear") )
+
+### All taxa D5 Temp
+ggplot() +
+  geom_tile (data=tile.df, aes(x= DOY,y=fY-2,fill= Pred),
+             alpha=.25) + guides(fill="none")+
+  scale_fill_gradient(low="blue", high= "red", limits=range(tile.df$Pred))+
+  geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
+            size=2)+ xlab("Day of year") + 
+  geom_line( data= temp.df, aes(x= DOY, y= Pred/1.5,color="#ffa600") ,size=2)+
+  facet_wrap(~fYear, nrow = 1)  + xlim(100,300)+  theme_classic()+
+  scale_y_continuous(sec.axis = sec_axis(~. *1.5,
+                                         name="Mean Temp (C)"), limits = c(0,18),
+                     name = "Mosquito density")+
+  theme(
+    legend.position = "top"
+  ) + scale_color_manual(values = c("#ffa600", "#003f5c", "#7a5195","#ef5675"),
+                         labels = c("Temp","A. vexans", "C. perturbans",
+                                    "C. tarsalis"), name="")+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "top",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+
+
+#ggsave( "D9_comm_temp.png", width=15 , height=5.95 , units="in")
+
+
+## Precipitation 
+ggplot() +
+  geom_tile(data=tile.df, aes(x= DOY,y=fY,fill= Pred),
+            alpha=.25) + guides(fill="none")+
+  scale_fill_gradient(low="blue", high= "red", limits=range(tile.df$Pred))+
+  geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
+            size=2)+
+  geom_line( data= ppt.df, aes(x= DOY, y= Pred/5,color="#ffa600") ,size=2)+
+  facet_wrap(~fYear, nrow = 1)  + xlim(100,300)+  theme_classic()+
+  scale_y_continuous(sec.axis = sec_axis(~. *5,
+                                         name="14 day total precip."),
+                     limits = c(0,15),
+                     name = "Mosquito density")+
+  scale_color_manual(values = c("#ffa600", "#003f5c", "#7a5195","#ef5675"),
+                         labels = c("Precip","A. vexans", "C. perturbans",
+                                    "C. tarsalis"), name="")+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = "top",
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
+#ggsave( "D9_comm_ppt.png", width=15 , height=5.95 , units="in")
+
+
+### All taxa D5 GDD
+
+gdd.df <- filter(gdd.df, fYear != '2013' & fYear!="2015")
+
+ggplot() +
+  geom_tile(data=tile.df, aes(x= DOY,y=fY,fill= Pred),
+            alpha=.25) + guides(fill="none")+
+  scale_fill_gradient(low="blue", high= "red", limits=range(tile.df$Pred))+
+  geom_line(data= count.df, aes(x = DOY , y=(exp(Count)/TrapHours) , color= SciName), 
+            size=2)+
+  geom_line( data= gdd.df, aes(x= DOY, y= Pred/25,color="#ffa600") ,size=2)+
+  facet_wrap(~fYear, nrow = 1)  + xlim(100,300)+  theme_classic()+
+  scale_y_continuous(sec.axis = sec_axis(~. *25,
+                                         name="Cummulative GDD"), limits = c(0,45),
+                     name = "Mosquito density")+
+  theme(
+    legend.position = "top"
+  ) + scale_color_manual(values = c("#ffa600", "#ef5675","#003f5c", "#7a5195"),
+                         labels = c("GDD", "A. communis" ,"A. vexans", 
+                                    "C. perturbans"), name="")+
+  theme( legend.key.size = unit(1.5, "cm"),
+         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
+         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
+         legend.position = c(.8,.15),
+         axis.line.x = element_line(color="black") ,
+         axis.ticks.y = element_line(color="black"),
+         axis.ticks.x = element_line(color="black"),
+         axis.title.x = element_text(size = rel(1.8)),
+         axis.text.x  = element_text(vjust=0.5, color = "black",size=14),
+         axis.text.y  = element_text(vjust=0.5,color = "black",size=14),
+         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
+         strip.text.x = element_text(size=20) )
+
