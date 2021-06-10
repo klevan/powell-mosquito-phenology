@@ -209,9 +209,19 @@ new.df <- new.df[!is.na(new.df$eighty),]
 
 pres.df <- filter(new.df, eighty == '1' )
 
-max.df <- filter( new.df, Count_pro ==1 )
 
+
+pres.df <- pres.df %>% group_by(Site) %>% 
+           mutate( nYear = length(unique(Year)))
+
+pres.df$exclude  <- 0
+
+pres.df$exclude[pres.df$nYear >3 ] <- 1
+
+pres.df <- filter( pres.df, exclude == 1)
+max.df <- filter( pres.df, Count_pro ==1 )
 
 ggplot( pres.df, aes(x=DOY, color= Year, y=as.factor(Year)))+ geom_line(size=2)+
   geom_point(data=max.df, aes(x=DOY, y= as.factor(Year) ),color="black",size=1)+
-  facet_wrap(~Site, scales= "free_y") + theme( legend.position = "none")
+  facet_wrap(~Site, scales= "free_y",ncol =3)+
+  theme_classic() + theme( legend.position = "none")
