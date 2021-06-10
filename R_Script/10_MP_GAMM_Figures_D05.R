@@ -24,7 +24,7 @@ library(gamm4)
 load("./Data/DailyPrismMod.Rda")
 
 # Count data to get the domains and lat and long information
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 # data structure for the daily data set
 
@@ -229,6 +229,7 @@ unique(toy.df$Year)
 toy.df <- toy.df %>% #filter(Plot == "WOOD_039") %>% 
   group_by(DOY,Plot,Site, Year, PPT14,CumGDD,Tmean7) %>% 
   summarise(Count = sum(Count),
+            Count_adj = sum(Count_adj),
             TrapHours= sum(TrapHours)) %>% ungroup()
 
 ## looking at the data
@@ -244,7 +245,7 @@ library(lme4)
 library(gamm4)
 
 
-toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D05")
+toy.df <- filter(full.df, SciName== "Aedes vexans" & Site == "UNDE")
 
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
@@ -284,14 +285,11 @@ dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 dum.df$Pred[dum.df$DOY <150] <- -1000
 #dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
-dum.df %>% filter( Site =="UNDE") %>% 
+dum.df %>% filter(fYear =="2017") %>% 
   ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
-              color=fYear))+ 
-  geom_point(data=toy.df, aes(y=Count/TrapHours,
-                              x=DOY),
-             color="black",size=2,alpha=.55)+
+              color=Plot))+ 
   geom_line(size=2,alpha=.75)+ theme_classic()+
-  facet_wrap(~fYear, scales="free_y")
+  facet_wrap(~Plot, scales="free_y")
 
 vexans.df <- dum.df %>% filter( Site =="UNDE") 
 names(vexans.df)

@@ -27,7 +27,7 @@ library( rstanarm )
 load("./Data/DailyPrismMod.Rda")
 
 # Count data to get the domains and lat and long information
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 # data structure for the daily data set
 
@@ -44,7 +44,7 @@ cont.df <- contigus.df %>% dplyr::select( -c("Lat", "Long", "Date"))
 full.df <- left_join(complete.df, cont.df, by=c("Plot","Year","DOY"))
 
 ## Number of rows should match complete.df of 620662
-dim(full.df) # 620662 X 30
+dim(full.df) # 619554 X 34
 
 
 
@@ -57,11 +57,16 @@ toy.df <- filter(full.df, SciName== "Aedes vexans" & Domain == "D09")
 unique(toy.df$Year)
 
 ## summarize to DOY level
-toy.df <- toy.df %>% #filter(Plot == "WOOD_039") %>% 
-  group_by(DOY,Plot,Site, Year, PPT14,CumGDD,Tmean7) %>% 
-  summarise(Count = sum(Count),
-            TrapHours= sum(TrapHours)) %>% ungroup()
+ toy.df <- toy.df %>% #filter(Plot == "WOOD_039") %>%
+   group_by(DOY,Plot,Site, Year, PPT14,CumGDD,Tmean7) %>%
+   summarise(Count = sum(Count),
+             Count_adj = sum(Count_adj),
+             TrapHours= sum(TrapHours)) %>% ungroup()
 
+
+
+
+ 
 ## looking at the data
 toy.df %>% 
   ggplot(aes(x=DOY,y=Count/TrapHours, color=Year)) +geom_point()+
@@ -77,8 +82,12 @@ library(gamm4)
 toy.df$fYear <- as.factor(toy.df$Year)
 toy.df$Site <- as.factor(toy.df$Site)
 
-gam1 <- gamm4( Count ~ s(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
-               random = ~ (1|Plot),
+toy.df$Count_adj <- as.integer(round(toy.df$Count_adj, 0))
+
+toy.df$Count[is.na(toy.df$Count_adj)]
+
+gam1 <- gam( Count_adj ~ te(DOY,by=interaction(fYear,Site))+ offset(log(TrapHours)),
+             
               data=toy.df, family="poisson")
 
 summary(gam1$gam)
@@ -105,28 +114,28 @@ dum.df <- tidyr::expand( dum.df, nesting(Plot,Site,DOY),fYear)
 #dum.df <- tidyr::expand( dum.df, nesting(DOY, fYear),toy.df$Site)
 dum.df$TrapHours <- 12
 
-dum.df$Pred <- predict(gam1$gam, newdata = dum.df)
+dum.df$Pred <- predict(gam1, newdata = dum.df)
 
 
-dum.df$Pred[dum.df$Site=="DCFS" & dum.df$fYear=="2017"] <- NA
 #dum.df <- filter(dum.df, fYear != '2017' & Site != "DCFS")
 ggplot( dum.df, aes(x=DOY, y=exp(Pred)/TrapHours,
                     color=fYear))+ 
-  geom_point(data=toy.df, aes(y=Count/TrapHours,
+  geom_point(data=toy.df, aes(y=Count_adj/TrapHours,
                               x=DOY),
              color="black",size=2,alpha=.55)+
   geom_line(size=2,alpha=.75)+ theme_classic()+
   facet_wrap(~Site, scales="free_y")
 
 
-at1 <- toy.df %>% filter(Site=="WOOD" & fYear=="2017")
-dum.df %>% filter(Site=="WOOD" & fYear=="2017") %>% 
-ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
-                    color=Site))+ 
-  geom_point(data=at1, aes(y=Count/TrapHours,
+at1 <- toy.df %>% filter(Site=="WOOD" )
+dum.df %>% filter(Site=="WOOD" ) %>% 
+ggplot( aes(x=DOY, y= log10((exp(Pred)/TrapHours) +1),
+                    color=fYear))+ 
+  geom_point(data=at1, aes(y= log10((Count_adj/TrapHours)+1),
                               x=DOY),
              color="black",size=2,alpha=.55)+
   geom_line(size=2,alpha=.75)+ theme_classic()+
+  facet_wrap(~fYear)
   xlab("DOY") + ylab("Adult A. vexans density")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
@@ -141,26 +150,7 @@ ggplot( aes(x=DOY, y=exp(Pred)/TrapHours,
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
 
-
-
-at1 <- dum.df 
-
-
-at1 <- at1 %>% group_by(fYear, Site) %>% 
-  mutate( mAbund = max(exp(Pred)/TrapHours))
-
-at1$Pro <- (exp(at1$Pred)/at1$TrapHours)/at1$mAbund
-
-         
-at1$Half <- NA
-
-at1$Half[at1$Pro>=.5] <- 1
-at1$Half[at1$Pro <.5] <- 0
-
-
-at2 <- at1 %>% group_by(fYear, Site) %>% filter( Half == 1) %>% 
-  summarise( First = min(DOY))
-
+  
 
 
 

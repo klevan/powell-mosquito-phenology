@@ -22,7 +22,7 @@ library( ggplot2 )
 
 setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 complete.df <- ungroup(complete.df) # ungrouping so i can extract col. of interest
 
