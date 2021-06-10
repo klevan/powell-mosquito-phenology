@@ -19,7 +19,7 @@ setwd("C:/Users/tmcdevitt-galles/powell-mosquito-phenology")
 
 # input combined dataset created in "01_MP_Data_Clean_Up.R"
 
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 ###  Data structure ##
 
@@ -61,11 +61,10 @@ complete.df %>% group_by(Domain,Year, DOY,SciName) %>%
   xlab("Number of sampling events per plot") + theme(legend.position = c(.8,.7))
 
 
-complete.df %>% group_by(Domain,Plot,Year,SciName) %>%
+complete.df %>% group_by(Domain,Plot,Year) %>%
   summarise(nDates= length(unique(DOY)),
             nPlots = length(unique( Plot ))) %>% 
   ggplot(aes(x=nDates, fill = Domain))+geom_histogram(binwidth=1) +theme_classic()+
-
   xlab("Number of sampling events per plot") +
   facet_wrap(~Year, scales="free")+ylab("Count")+
   theme( legend.key.size = unit(.5, "cm"),
@@ -103,7 +102,7 @@ complete.df %>% group_by(Domain,Plot,Year) %>%
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=20) )
 
-ggsave( "Hist_sampling.png", width=15 , height=10 , units="in")
+#ggsave( "Hist_sampling.png", width=15 , height=10 , units="in")
 
 ## Lets select taxa that we said we would model 
 
@@ -116,15 +115,10 @@ grant.df <- complete.df %>% filter( SciName == "Aedes canadensis" |
                                     SciName ==   "Culex tarsalis"  )
 
 
-### Lets check the new dimenstions and add simple trait data from grant
 
-dim(grant.df) #  130804 X 16
+dim(grant.df) #  139903 X 20
 
-trait.df <- read.csv("./Data/Simple_Trait.csv")
 
-grant.df <- left_join(grant.df, trait.df, by = "SciName")
-
-dim(grant.df) # 130804  X 20
 
 sum.df <-grant.df %>% group_by(Domain, Year, NorD, Plot) %>%
   summarise(nSamp = length(unique(SampID)))
@@ -134,8 +128,9 @@ ggplot(sum.df, aes(x=nSamp,fill=NorD))+geom_density(alpha=.5)+
 
 # adding a column for total collected taxa
 grant.df <- grant.df %>% 
-  group_by(SciName, Year, Plot) %>% 
-  mutate( nTotal = sum(Count)) %>% ungroup()
+  group_by(SciName, Year, Plot, Domain) %>% 
+  mutate( nTotal = sum(Count_adj),
+          nHours = sum(TrapHours)) %>% ungroup()
 
 
 grant.df %>% #filter(nTotal >0 ) %>% 
@@ -144,7 +139,7 @@ grant.df %>% #filter(nTotal >0 ) %>%
 
 
 grant.df %>%  filter(nTotal >0 ) %>% 
-  ggplot(aes(y = log10( (Count/TrapHours)+1 ), fill=Year, x=Domain)) +geom_boxplot(alpha=.5)+
+  ggplot(aes(y = log10( (nTotal/nHours)+1 ), fill=Year, x=Domain)) +geom_boxplot(alpha=.5)+
   facet_wrap(~SciName, scales="free") + theme_classic()+ 
   xlab("Domains") +ylab("log10(Mosquito densities)")+
   theme( legend.key.size = unit(.5, "cm"),
@@ -163,9 +158,9 @@ grant.df %>%  filter(nTotal >0 ) %>%
 
 grant.df %>%  filter(nTotal >0 ) %>% 
   filter(Domain=="D05" | Domain== "D08" | Domain == "D09" | Domain =="D06") %>% 
-  ggplot(aes(y = log10(nTotal), x=Year, fill=SciName)) +geom_boxplot(alpha=.5)+
+  ggplot(aes(y = (nTotal/nHours), x=Year, fill=SciName)) +geom_boxplot(alpha=.5)+
   facet_wrap(~Domain, scales="free") + theme_classic()+
-  xlab("Year") +ylab("log10(Mosquito densities)")+
+  xlab("Year") +ylab("log10(Mosquito densities)") +
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
@@ -212,7 +207,7 @@ grant.df %>% filter(Domain == "D06" & SciName == "Aedes vexans" & Year != "2020"
 
 grant.df %>% filter(Domain == "D06" & SciName == "Aedes vexans" ) %>% 
   group_by(Domain, Site, Year, Plot) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = Year, y=( ( (Count/TrapHours)) ), fill=Site)) +geom_boxplot(alpha=.5)+
   facet_wrap(~Domain, scales="free_y", ncol=1) +  theme_classic()+
   xlab("Year") +ylab("Mosquito densities")+
@@ -233,7 +228,7 @@ grant.df %>% filter(Domain == "D06" & SciName == "Aedes vexans" ) %>%
 
 grant.df %>% filter(Site == "UKFS" & SciName == "Aedes vexans"& Year != "2020" ) %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)) , color=SciName)) +geom_point(alpha=.5)+
   facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
@@ -254,7 +249,7 @@ grant.df %>% filter(Site == "UKFS" & SciName == "Aedes vexans"& Year != "2020" )
 
 grant.df %>% filter(Site == "UKFS"  & Year != "2020") %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
   facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
@@ -320,7 +315,7 @@ grant.df %>% filter(Domain == "D08" & SciName == "Aedes vexans" ) %>%
 
 grant.df %>% filter(Site == "DELA" & SciName == "Aedes vexans"& Year != "2020" ) %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)) , color=SciName)) +geom_point(alpha=.5)+
   facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
@@ -434,11 +429,11 @@ grant.df %>% filter(Site == "WOOD" & SciName == "Aedes vexans"& Year != "2020" )
          strip.text.x = element_text(size=20) )
 
 
-grant.df %>% filter(Site == "WOOD"  & Year != "2020") %>% 
+grant.df %>% filter(Site == "WOOD"  & Year == "2017") %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
-  facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(size=2,se = F)+ theme_classic()+
+  facet_wrap(~Plot, scales="free_y", ncol=4) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
   scale_color_manual(values = c("#CC6666", "#9999CC", "#66CC99"))+
   theme( legend.key.size = unit(.5, "cm"),
@@ -477,7 +472,7 @@ grant.df %>% filter(Site == "NOGP" & SciName == "Aedes vexans"& Year != "2020" )
          strip.text.x = element_text(size=20) )
 
 
-grant.df %>% filter(Site == "WOOD"  & Year != "2020") %>% 
+grant.df %>% filter(Site == "WOOD"  & Year == "2017") %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
   summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
@@ -522,7 +517,7 @@ grant.df %>% filter(Site == "DCFS" & SciName == "Aedes vexans"& Year != "2020" )
 
 grant.df %>% filter(Site == "DCFS"  & Year != "2020") %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
   facet_wrap(~Year, scales="free_y", ncol=4) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
@@ -676,7 +671,7 @@ grant.df %>% filter(Site == "TREE"  & Year != "2020" &
 
 grant.df %>% filter(Site == "UNDE" & SciName == "Aedes vexans"& Year != "2020" ) %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
   ggplot(aes(x = DOY, y=( (Count/TrapHours)) , color=SciName)) +geom_point(alpha=.5)+
   facet_wrap(~Year, scales="free_y", ncol=5) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
@@ -695,11 +690,11 @@ grant.df %>% filter(Site == "UNDE" & SciName == "Aedes vexans"& Year != "2020" )
          strip.text.x = element_text(size=20) )
 
 
-grant.df %>% filter(Site == "UNDE"  & Year != "2020") %>% 
+grant.df %>% filter(Site == "UNDE"  & Year == "2017") %>% 
   group_by(DOY, Site, Year, Plot, SciName) %>%
-  summarise( Count=sum(Count), TrapHours= sum(TrapHours)) %>% 
-  ggplot(aes(x = DOY, y=( (Count/TrapHours)), color=SciName)) +geom_point(alpha=.5)+
-  facet_wrap(~Year, scales="free_y", ncol=5) + stat_smooth(size=2,se = F)+ theme_classic()+
+  summarise( Count=sum(Count_adj), TrapHours= sum(TrapHours)) %>% 
+  ggplot(aes(x = DOY, y=log10( (Count/TrapHours)+1), color=SciName)) +geom_point(alpha=.5)+
+  facet_wrap(~Plot, scales="free_y", ncol=5) + stat_smooth(size=2,se = F)+ theme_classic()+
   xlab("Day of Year") +ylab("Mosquito densities")+
   scale_color_manual(values = c( "#9999CC", "#66CC99", "#CC6666","#cc66cc"))+
   theme( legend.key.size = unit(.5, "cm"),

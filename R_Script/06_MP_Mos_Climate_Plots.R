@@ -37,6 +37,10 @@ str(complete.df)
 # selecting the needed columns and data to merge with count data
 cont.df <- contigus.df %>% select( -c("Lat", "Long", "Date"))
 
+site.df <- unique( select( ungroup(complete.df), c("Domain", "Site","Plot")))
+
+contigus.df <- left_join(contigus.df, site.df, by="Plot")
+
 # Joining datasets so that prism data is now linked to count data
 full.df <- left_join(complete.df, cont.df, by=c("Plot","Year","DOY"))
 

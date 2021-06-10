@@ -219,7 +219,7 @@ year.df %>% filter(nDates > 10 & Year != "2020") %>%
 # Exploring the patterns at the plot levellevel
 
 plot.df <- trap.df%>% 
-  group_by(Year, Domain, Site, Plot) %>% 
+  group_by(Year, Domain, Site, Plot, NorD) %>% 
   summarise(start = min(DOY, na.rm = T),
             end = max(DOY, na.rm = T),
             nDates = length(unique(DOY))) %>% ungroup() 
@@ -234,20 +234,22 @@ ggplot(plot.df, aes(x = Season, y= nDates, color=Site)) +geom_point(size=2)+
   theme(legend.position="none") + geom_hline(yintercept = 10, size =1) +
   facet_wrap(~Domain, scales="free") 
 
-## caculating the mean difference between sampling dates
+## calculating the mean difference between sampling dates
 plot.df$SGap <- plot.df$Season/plot.df$nDates
 
 ggplot(plot.df, aes(x = Season, y= SGap, color=Domain, size=nDates)) + 
   geom_point(alpha=.5)+
   theme(legend.position="none") + facet_wrap(~Year) + geom_hline(yintercept=14)
 
-## assessing how stable sample location is across years
-## Answer very stable
 
-trap.df %>%  filter(Domain == "D05" &Year !=  "2020" & 
-                      Year != "" ) %>% 
-  ggplot(aes(x = Lat, y= Long, color= Year)) +geom_point()+
-  facet_wrap(~Plot, scales="free")
+### lets make sure these gaps are correct
+
+
+plot.df <- trap.df%>% 
+  group_by(Year, Domain, Site, Plot, NorD) %>% 
+  mutate(start = min(DOY, na.rm = T),
+            end = max(DOY, na.rm = T),
+            nDates = length(unique(DOY))) %>% ungroup() 
 
 ########## Count data ###########
 
@@ -279,9 +281,22 @@ count.df$SampleID <- as.factor(count.df$sampleID)
 
 
 ## Checks for consistency in species names
-
-View(unique(count.df$SciName))
+(unique(count.df$SciName))
 ## Couple of variation in taxonomic level that might require we merge things
+
+## lets see what Aedes candaensis and its subspecies looks like
+
+canada.df <- filter( count.df, SciName == 'Aedes canadensis canadensis' |
+                               SciName == 'Aedes canadensis mathesoni'|
+                               SciName == 'Aedes canadensis')
+
+
+ggplot(canada.df, aes(x=log10(Count), fill =SciName )) + geom_density()+ facet_wrap(~Domain)
+
+
+count.df$SciName[count.df$SciName == "Aedes canadensis mathesoni"] <-'Aedes canadensis'
+count.df$SciName[count.df$SciName == "Aedes canadensis canadensis"] <-'Aedes canadensis'
+
 
 # Combinding the two data sets
 # Simplifying count data
@@ -410,10 +425,30 @@ spp.df %>%  filter( Year != "2020" & Year != "") %>%
   ggplot(aes(x=DOY, y= nSpecies, color=Year)) + geom_point(alpha=.75)+
   facet_wrap(~Year,scales='free_y') +theme_classic()
 
+# correcting the count based on subsample weight 
 
-## Ok lets combind the count data, need to simplify it to Plot SciName and DOY
+## first thing i need to do is add in 1 for all 0s
+
+complete.df$SubsetWeight[is.na(complete.df$SubsetWeight)] <- 1
+complete.df$SubsetWeight[complete.df$SubsetWeight == 0] <- complete.df$TotalWeight[complete.df$SubsetWeight == 0]
+complete.df$TotalWeight[is.na(complete.df$TotalWeight)] <- 1
+
+complete.df$Count_adj <- (complete.df$Count * complete.df$TotalWeight) / complete.df$SubsetWeight
+
+# lets check to make sure this is correct, graph should be 1:1
+
+ggplot(complete.df, aes(x=(SubsetWeight/TotalWeight), y = (Count/Count_adj)))+
+  geom_point() + geom_abline(slope=1,intercept=0)
+
+hist(log10(complete.df$Count_adj+1))
+
+hist(log10(complete.df$Count+1))
+
+
+ggplot(complete.df, aes(x=log10(Count+1), y = log10(Count_adj+1)))+
+  geom_point() + geom_abline(slope=1,intercept=0)
 
 # Should be good to start to explore
 
-save(complete.df, file = "combinded.Rda")
+save(complete.df, file = "Mosquito_Data_Clean.Rda")
 
