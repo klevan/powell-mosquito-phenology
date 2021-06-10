@@ -27,7 +27,7 @@ load("./Data/DailyPrismMod.Rda")
 load("./Data/MonthlyNormals.Rda")
 
 # Count data to get the domains and lat and long information
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 # Subsetting to just plot information
 complete.df <- complete.df %>%  ungroup %>% 
