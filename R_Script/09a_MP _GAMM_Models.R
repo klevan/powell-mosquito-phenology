@@ -58,10 +58,11 @@ unique(toy.df$Year)
 
 ## summarize to DOY level
  toy.df <- toy.df %>% #filter(Plot == "WOOD_039") %>%
-   group_by(DOY,Plot,Site, Year, PPT14,CumGDD,Tmean7) %>%
+   group_by(TrapEvent,Plot,Site, Year, PPT14,CumGDD,Tmean7) %>%
    summarise(Count = sum(Count),
              Count_adj = sum(Count_adj),
-             TrapHours= sum(TrapHours)) %>% ungroup()
+             TrapHours= sum(TrapHours),
+             DOY = min(DOY)) %>% ungroup()
 
 
 

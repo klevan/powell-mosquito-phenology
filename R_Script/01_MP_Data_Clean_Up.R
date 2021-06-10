@@ -145,6 +145,52 @@ trap.df %>% filter(Year !="2020" ) %>%
   ggplot(aes(x=DOY, fill=Year)) + geom_density(alpha=.5) +
   facet_wrap(~Domain, scales="free_y") + theme_classic()
 
+
+### Identifying "TrapEvents" trapping events that occur within 36 hours of each
+### other
+
+
+trap.df$TrapDiff <- NA
+trap.df$TrapDiff[1] <-0
+p <- 1
+for( i in 1:length(unique(trap.df$Plot))){
+  focPlot <- unique(trap.df$Plot)[i]
+  foc.df <- filter(trap.df, Plot == focPlot)
+  foc.df <- foc.df[order(foc.df$Julian),]
+ if( nrow(foc.df) > 1){ 
+  for(t in 2:nrow(foc.df)){
+    foc.df$TrapDiff[t] <- foc.df$Julian[t] - foc.df$Julian[t-1]
+  }
+  if( p == 1 ){
+    new.df <- foc.df
+    p <- p +1
+  }else{
+    new.df <- rbind.data.frame(new.df, foc.df)
+  }
+   }
+}
+
+trap.df <- new.df
+
+trap.df$TrapEvent <- NA
+
+trap.df$TrapEvent[1] <- 1
+
+for( t in 2:nrow(trap.df) ){
+  if(is.na(trap.df$TrapDiff[t])){
+    trap.df$TrapEvent[t] <- trap.df$TrapEvent[t-1]+ 1
+    }else{
+      if( trap.df$TrapDiff[t] < 2 ){
+      trap.df$TrapEvent[t] <- trap.df$TrapEvent[t-1]
+        }else{
+          trap.df$TrapEvent[t] <- trap.df$TrapEvent[t-1]+ 1
+    }
+  }
+}
+
+
+
+
 year.df <- trap.df %>% group_by(Year, Domain) %>% 
   summarise(start = min(DOY, na.rm = T),
             end = max(DOY), na.rm = T,
@@ -219,10 +265,10 @@ year.df %>% filter(nDates > 10 & Year != "2020") %>%
 # Exploring the patterns at the plot levellevel
 
 plot.df <- trap.df%>% 
-  group_by(Year, Domain, Site, Plot, NorD) %>% 
+  group_by(Year, Domain, Site, Plot) %>% 
   summarise(start = min(DOY, na.rm = T),
             end = max(DOY, na.rm = T),
-            nDates = length(unique(DOY))) %>% ungroup() 
+            nDates = length(unique(TrapEvent))) %>% ungroup() 
 # removing missing year and 2020 
 plot.df <- (plot.df %>% filter( Year !=  "2020" & 
                                   Year != "" ) )
@@ -390,7 +436,7 @@ Zero.df <- right_join( simpleCount.df, long.df,
 join.df <- full.df %>% dplyr::select(c("Domain", "Site", "Plot", "plotType", "VegClass",
                                 "Lat","Long", "Elev" ,"NorD","TrapHours", 
                                 "SampID", "Date", "DOY", "SampleCondition",
-                                "TotalWeight", "SubsetWeight") )
+                                "TotalWeight", "SubsetWeight", "TrapEvent") )
 
 
 complete.df <- left_join(Zero.df, join.df, by=c("Plot" ,"SampID"))
