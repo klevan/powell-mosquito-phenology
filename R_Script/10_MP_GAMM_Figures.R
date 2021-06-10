@@ -24,7 +24,7 @@ library(gamm4)
 load("./Data/DailyPrismMod.Rda")
 
 # Count data to get the domains and lat and long information
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 # data structure for the daily data set
 
@@ -358,10 +358,7 @@ names(perturbans.df)
 
 colnames(perturbans.df)[7] <- "Count"
 
-## lets look atthe other two species starting with Coquillettidia
 
-
-## first lets try to fit a frequentist approach to verify that our bayesian
 ## model is working ok
 library(lme4)
 library(gamm4)

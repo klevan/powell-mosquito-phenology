@@ -28,7 +28,7 @@ library( rstanarm )
 load("./Data/DailyPrismMod.Rda")
 
 # Count data to get the domains and lat and long information
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 contigus.df <- at1
 

@@ -435,7 +435,8 @@ complete.df$TotalWeight[is.na(complete.df$TotalWeight)] <- 1
 
 complete.df$Count_adj <- (complete.df$Count * complete.df$TotalWeight) / complete.df$SubsetWeight
 
-# lets check to make sure this is correct, graph should be 1:1
+complete.df$Count_adj[is.na(complete.df$Count_adj)] <- complete.df$Count[is.na(complete.df$Count_adj)]
+# lets check to make sure this is correct, graph should b <- e 1:1
 
 ggplot(complete.df, aes(x=(SubsetWeight/TotalWeight), y = (Count/Count_adj)))+
   geom_point() + geom_abline(slope=1,intercept=0)
@@ -448,7 +449,9 @@ hist(log10(complete.df$Count+1))
 ggplot(complete.df, aes(x=log10(Count+1), y = log10(Count_adj+1)))+
   geom_point() + geom_abline(slope=1,intercept=0)
 
+
 # Should be good to start to explore
 
 save(complete.df, file = "Mosquito_Data_Clean.Rda")
 
+`
