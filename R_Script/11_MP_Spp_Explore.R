@@ -898,7 +898,7 @@ for( s in 1:length(unique(var.df$Site))){
 
 new.df$Count_pro <- as.numeric(new.df$Count_pro)
 new.df$eighty <- "0"
-new.df$eighty[new.df$Count_pro >= .2] <- '1'
+new.df$eighty[new.df$Count_pro >= .4] <- '1'
 new.df <- new.df[!is.na(new.df$eighty),]
 
 
@@ -933,4 +933,47 @@ ggplot( pres.df, aes(x=DOY, color= Year, y=as.factor(Year)))+ geom_line(size=2)+
          axis.title.y = element_text(size = rel(1.8), angle = 90) ,
          strip.text.x = element_text(size=16) )
 
+
+
+
 #ggsave( "per_stab.png", width=10 , height=7.5 , units="in")
+
+early.df <- perturban.df %>% filter( Site == "HARV")
+
+early.df %>%group_by( Year) %>% 
+  summarize(ndays = length(unique(DOY)))
+
+
+ggplot(early.df , aes(x = DOY, y = log10( (Count_adj/TrapHours)+1), color=as.factor(Year)))+
+  geom_point(size=2, alpha=.5) + facet_wrap(~Plot, scales = "free_y")
+
+
+early.df$Count_pro <- NA
+
+
+t <-1
+
+for( s in 1:length(unique(early.df$Plot))){
+  foc_site <- unique(early.df$Plot)[s]
+  foc.df <- filter(early.df, Plot == foc_site)
+  
+  for( y in 1:length(unique(foc.df$Year))){
+    foc_year <- unique(foc.df$Year)[y]
+    
+    year.df <- filter( foc.df, Year == foc_year)
+    
+    year.df$Count_pro <- (year.df$Count_adj/year.df$TrapHours)/
+      max(year.df$Count_adj/year.df$TrapHours)
+    if( t == 1){``
+      new.df <- year.df
+      t <- t + 1
+    }else(
+      new.df <- rbind.data.frame(new.df, year.df)
+    )
+  }
+}
+
+
+ggplot(new.df , aes(x = DOY, y = (Count_pro), color=as.factor(Year)))+
+  geom_point(size=2, alpha=.5) + facet_wrap(~Plot, scales = "free_y")
+

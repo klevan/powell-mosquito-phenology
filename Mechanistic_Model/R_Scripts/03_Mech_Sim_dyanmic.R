@@ -37,11 +37,11 @@ TPC <- function( Temp, Toptim, CTmax, sigma){
 ## testing the TPC function
 temp <- seq(-5, 45, length.out = 100) # initial temperature range
 
-at1 <- TPC( Temp = temp, Toptim = 25, CTmax= 40, sigma = 1.2)
+at1 <- TPC( Temp = temp, Toptim = 25, CTmax= 35, sigma = 2)
 
 # plotting the thermal performance curve
 
-plot(x= temp, y= at1)
+plot(x= temp, y= at1*.8)
 # doesn't look that good but we can carry on with it
 
 ### Extracting temp data from PRISM, use this for our seasonal model ###
@@ -59,7 +59,7 @@ library(gamm4)
 load("./Data/DailyPrismMod.Rda")
 
 # Count data to get the domains and lat and long information
-load("./Data/combinded.Rda")
+load("./Data/Mosquito_Data_Clean.Rda")
 
 #################### modeling climate patterns across plot
 
@@ -68,12 +68,12 @@ site.df <- unique(select(ungroup(complete.df), c("Site", "Plot")))
 # Need to add Site info to prism data 
 contig.df <- left_join(contigus.df, site.df , by="Plot")
 
-focal.df <- filter( contig.df, Site=="WOOD") # modeling wood from D9
+focal.df <- filter( contig.df, Site=="UNDE") # modeling UNDE from D6
 
 focal.df$fYear <- as.factor(focal.df$Year)
 
 ### Temperature
-gam.temp <- gamm4( Tmean7 ~ s(DOY,by=(fYear), bs="cc"),
+gam.temp <- gamm4( Tmax7 ~ s(DOY,by=(fYear), bs="cc"),
                    random = ~ (1|Plot),
                    data=focal.df, family="gaussian")
 
@@ -97,7 +97,7 @@ dum.df$Pred <- predict(gam.temp$gam, newdata = dum.df)
 # Looking at predicted number
 dum.df %>% filter( fYear != "2013") %>% 
   ggplot(  aes(x=DOY, y=(Pred)))+ 
-  geom_point(data=focal.df, aes(x= DOY,y=Tmean7, color=fYear),size=2)+
+  geom_point(data=focal.df, aes(x= DOY,y=Tmax7, color=fYear),size=2)+
   #geom_point( data=at1, aes(x= DOY, y=PPT14))+
   geom_line(size=2,alpha=.75,color="black")+ theme_classic()+ 
   facet_wrap(~fYear)
@@ -138,22 +138,19 @@ pred.df$lMortRate <- NA ##  tracking proportion of larvae that die per day
                         ## per day, sensitive to the temperature
 
 # Starting values
-pred.df$Juv1[1] <- 1000## overwinter larval population
-pred.df$Juv2[1] <- 1000## overwinter larval population
-pred.df$Juv3[1] <- 1000 ## overwinter larval population
+pred.df$Juv1[1] <- 10## overwinter larval population
+pred.df$Juv2[1] <- 10## overwinter larval population
+pred.df$Juv3[1] <- 10 ## overwinter larval population
 pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
 
 ## Fixed parameters
 
-fec <- 2.4 ## setting a fecundity rate of 3 eggs per day per female
+fec <- 4 ## setting a fecundity rate of  # eggs per day per female
 ## number of eggs laid per day,
-aMortal <- 0.35 ## setting mortality rate for adults
+aMortal <- 0.5 ## setting mortality rate for adults
 ## proportion of Adults that die per day (24 hr)
-lMortal <- .3 ## setting mortality rate for larvae
+lMortal <- .35 ## setting mortality rate for larvae
 ## proportion of larvae that die per day (24 hr)
-
-
-## Lets run the model
 
 ## Lets run the model
 
@@ -215,7 +212,7 @@ pred.df %>% filter(DOY >= 150) %>%
          strip.text.x = element_text(size=20) )
 
 
-
+## Plotting the temp and coefficients 
 pred.df %>% 
   ggplot( aes( x=DOY, y=DevRate)) + geom_line(size=2, alpha=.85,
                                               aes(color="black")) +
@@ -224,8 +221,11 @@ pred.df %>%
                                           name="Mean Temp (C)"),
                       name="Relative Development Rate") + theme_classic()+
   scale_color_manual(name="", values=c("black" = "black","grey"="grey"),
-                     labels=c("Devel. rate", "Temp."))+# selecting col. of interest
-  pred.df <- select(temp.df, c("DOY", "Pred", "fYear"))
+                     labels=c("Devel. rate", "Temp."))
+
+# selecting col. of interest
+  
+pred.df <- select(temp.df, c("DOY", "Pred", "fYear"))
 
 # filtering out so we just have one year of temp data
 pred.df <- unique(pred.df %>% filter(fYear == "2017"))
@@ -261,11 +261,11 @@ pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
 
 ## Fixed parameters
 
-fec <- 2.4 ## setting a fecundity rate of 3 eggs per day per female
+fec <- 4 ## setting a fecundity rate of 4 eggs per day per female
 ## number of eggs laid per day,
-aMortal <- 0.35 ## setting mortality rate for adults
+aMortal <- 0.5 ## setting mortality rate for adults
 ## proportion of Adults that die per day (24 hr)
-lMortal <- .3 ## setting mortality rate for larvae
+lMortal <- .35 ## setting mortality rate for larvae
 ## proportion of larvae that die per day (24 hr)
 
 
@@ -301,8 +301,11 @@ for( i in 1:(nrow(pred.df)-1)){
                              CTmax= 25, sigma = 1.5)/2)
   # tracking the development rate across time
   pred.df$DevRate[i] <- TPC( pred.df$Temp[i],  Toptim = 20 ,
-                             CTmax=25, sigma = 1.5)
+                             CTmax=25, sigma = 1.5)/2
 }
+
+
+## plot the resuts 
 
 pred.df %>% filter(DOY >= 150) %>% 
   ggplot( aes( x=DOY, y=(Adult))) + geom_line(size=2, alpha=.85,
@@ -341,20 +344,6 @@ pred.df %>%
                       name="Relative Development Rate") + theme_classic()+
   scale_color_manual(name="", values=c("black" = "black","grey"="grey"),
                      labels=c("Devel. rate", "Temp."))+
-  theme( legend.key.size = unit(.5, "cm"),
-         legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
-         legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
-         legend.position = c(.9,.9),
-         axis.line.x = element_line(color="black") ,
-         axis.ticks.y = element_line(color="black"),
-         axis.ticks.x = element_line(color="black"),
-         axis.title.x = element_text(size = rel(1.8)),
-         axis.text.x  = element_text(vjust=0.5, color = "black"),
-         axis.text.y  = element_text(vjust=0.5,color = "black"),
-         axis.title.y = element_text(size = rel(1.8), angle = 90) ,
-         strip.text.x = element_text(size=20) )
-
-
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
          legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
@@ -409,30 +398,31 @@ pred.df$Adult[1] <- 0 ## number of adults in day 1 should be 0
 
 ## Fixed baseline parameters
 
-fec <- 12 ## setting a fecundity rate of 3 eggs per day per female
+fec <- 0 ## setting a fecundity rate of 3 eggs per day per female
 ## number of eggs laid per day,
-aMortal <- 0.7 ## setting mortality rate for adults
+aMortal <- .95 ## setting mortality rate for adults
 ## proportion of Adults that die per day (24 hr)
-lMortal <- .8 ## setting mortality rate for larvae
+lMortal <- .95 ## setting mortality rate for larvae
 ## proportion of larvae that die per day (24 hr)
+LarvalDev <- .5
+
 
 # Specifying the TPC parameters for development, fecundity and mortality
 
 ## Development: 
+dev_par <- c( 20,  # Toptim: temperature where trait value is maximized
+              25,  # CTmax: critical threshold for temperature
+              1.5) # sigma: parameter that shapes slope as temp approaches Toptim
 
-dev_par <- c( 15,  # Toptim: temperature where trait value is maximized
-              22,  # CTmax: critical threshold for temperature
-              .75) # sigma: parameter that shapes slope as temp approaches Toptim
-
-fec_par <- c( 37,  # Toptim: temperature where trait value is maximized
-              39,  # CTmax: critical threshold for temperature
+fec_par <- c( 22,  # Toptim: temperature where trait value is maximized
+              28,  # CTmax: critical threshold for temperature
              2) # sigma: parameter that shapes slope as temp approaches Toptim
 
-aMort_par <- c( 20,# Toptim: temperature where trait value is maximized
-              30,  # CTmax: critical threshold for temperature
-              .95) # sigma: parameter that shapes slope as temp approaches Toptim
+aMort_par <- c( 22,# Toptim: temperature where trait value is maximized
+              30,  # CTmax: critical thrshold for temperature
+              3.5) # sigma: parameter that shapes slope as temp approaches Toptim
 
-lMort_par <- c( 20,# Toptim: temperature where trait value is maximized
+lMort_par <- c( 25,# Toptim: temperature where trait value is maximized
               30,  # CTmax: critical threshold for temperature
               2.5) # sigma: parameter that shapes slope as temp approaches Toptim
 
@@ -470,21 +460,21 @@ for( i in 1:(nrow(pred.df)-1)){
   pred.df$Juv1[i+1] <- pred.df$Juv1[i]+ (pred.df$Adult[i] * 
                                         ( fec* pred.df$FecRate[i]) ) -
                        pred.df$Juv1[i] * (lMortal * pred.df$lMortRate[i] ) - 
-                       pred.df$Juv1[i] * ( pred.df$DevRate[i]/2)
+                       pred.df$Juv1[i] * ( pred.df$DevRate[i] * LarvalDev)
   
   pred.df$Juv2[i+1] <- pred.df$Juv2[i]+ pred.df$Juv1[i] * 
                                         (pred.df$DevRate[i]/2) -
                        pred.df$Juv2[i] *  (lMortal * pred.df$lMortRate[i] ) - 
-                       pred.df$Juv2[i] * ( pred.df$DevRate[i]/2)
+                       pred.df$Juv2[i] * ( pred.df$DevRate[i] * LarvalDev)
     
   pred.df$Juv3[i+1] <- pred.df$Juv3[i]+ pred.df$Juv2[i] * 
                                            (pred.df$DevRate[i]/2) -
                        pred.df$Juv3[i] * (lMortal * pred.df$lMortRate[i] ) - 
-                       pred.df$Juv3[i] * ( pred.df$DevRate[i]/2)
+                       pred.df$Juv3[i] * ( pred.df$DevRate[i] * LarvalDev)
   ## Adult dynamics
   pred.df$Adult[i+1] <- pred.df$Adult[i] - pred.df$Adult[i] *
-                                           (aMortal * pred.df$aMortRate[i]) +
-                        pred.df$Juv3[i] *  ( pred.df$DevRate[i]/2)
+                                           ( aMortal * pred.df$aMortRate[i]) +
+                        pred.df$Juv3[i] *  ( pred.df$DevRate[i] * LarvalDev) 
   }
   
 
@@ -539,14 +529,14 @@ pred.df %>% filter(DOY >= 200) %>%
   
   
 pred.df %>% 
-    ggplot( aes( x=DOY, y=DevRate)) + geom_line(size=2, alpha=.85,
+    ggplot( aes( x=DOY, y=DevRate*LarvalDev)) + geom_line(size=2, alpha=.85,
                                                 aes(color="black")) +
-    geom_line(aes(x=DOY, y= FecRate, color="grey"), size=2,alpha=.75) +
-    scale_y_continuous( sec.axis = sec_axis(~. * max(pred.df$Temp),
-                                            name="Mean Temp (C)"),
+    geom_line(aes(x=DOY, y= lMortRate, color="grey"), size=2,alpha=.75) +
+    scale_y_continuous( sec.axis = sec_axis(~. * 1,
+                                            name="Mortality rate"),
                         name="Relative Development Rate") + theme_classic()+
     scale_color_manual(name="", values=c("black" = "black","grey"="grey"),
-                       labels=c("Devel. rate", "Temp."))+
+                       labels=c("Adult mort", "Larv Mort"))+
     theme( legend.key.size = unit(.5, "cm"),
            legend.title =element_text(size=14,margin = margin(r =10, unit = "pt")),
            legend.text=element_text(size=14,margin = margin(r =10, unit = "pt")), 
@@ -563,6 +553,52 @@ pred.df %>%
   
 
 
+range(pred.df$aMortRate*aMortal, na.rm=T)
+
+dev.lim <- seq(0,
+               35, length.out = 100)
+
+ndays <- 1:20
+
+
+mort.df <- as.data.frame(expand.grid(dev.lim , ndays))
+
+colnames(mort.df) <- c("Temp", "nDays")
+
+mort.df$Life <- NA
+
+mort.df$Life <- (1-(1- TPC( mort.df$Temp,
+                          Toptim = aMort_par[1],
+                          CTmax= aMort_par[2],
+                          sigma = aMort_par[3]) *aMortal))^mort.df$nDays
+
+ggplot(mort.df, aes( x= (Temp), y =nDays, color=(Life), group=Temp) )+
+  geom_line(alpha=.75,size=2) + theme_classic()+
+  scale_color_viridis(name = "Probability", option = "C") +
+  xlab( "Temp") + ylab("lifespan")
+
+
+### Testing the number of instars and how that shapes time to metamorphosis
+
+nInstars <- 1:2
+temp <- seq(0,
+    25, length.out = 100)
+
+dev.df <- as.data.frame(expand.grid(nInstars, temp))
+
+colnames(dev.df) <- c("Instars", "Temp")
+
+dev.df$nDays <- NA
+
+dev.df$nDays <- (1/ ( TPC( dev.df$Temp,
+                            Toptim = dev_par[1],
+                            CTmax= dev_par[2],
+                            sigma = dev_par[3]) *.25)^dev.df$Instars)
+ggplot(dev.df, aes( x= (Temp), y = (nDays), color=as.factor(Instars),
+                    group=as.factor(Instars)) )+ 
+  geom_line(alpha=.75,size=2) + theme_classic()+
+  scale_color_brewer(name = "Number of instars", palette = "Set1") +
+  xlab( "Temp") + ylab("Days to adult")#+ facet_wrap(~Instars, scales="free_y")
 
 ### building a for loop to explore how parameters shape the modality
 
