@@ -137,7 +137,7 @@ con2.b <- consist.df %>%
   ggplot(aes(x= Emerge, y= Temp) )+
   geom_line(size =2, alpha=.8, linetype=2)  +
   theme_classic() + 
-  xlab("∆ in phenological pattern") +ylab("Experienced temperature")+
+  xlab("Change in phenological pattern") +ylab("Experienced temperature")+
   theme( legend.key.size = unit(.5, "cm"),
          legend.title =element_text(size=12,margin = margin(r = 40, unit = "pt")),
          legend.text=element_text(size=12,margin = margin(r = 40, unit = "pt")), 
